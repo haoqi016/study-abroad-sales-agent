@@ -24,7 +24,7 @@ MIME = {".html": "text/html", ".js": "text/javascript", ".css": "text/css",
 
 
 def scripted_turn(inbound_id: str, inbound_raw: str, previous_objective_id: str | None = None,
-                  text: str = "你现在最需要哪一项申请帮助？",
+                  text: str = "Which part of your application do you need the most help with?",
                   review: dict | None = None) -> dict:
     """A visible canned fixture, never a model or customer conversation."""
     observation_ids = [inbound_id, review["event_id"]] if review else [inbound_id]
@@ -38,23 +38,23 @@ def scripted_turn(inbound_id: str, inbound_raw: str, previous_objective_id: str 
         "normalized_meaning_spans": [inbound_raw],
         "hypotheses": [{"code": "VALUE_UNCLEAR", "confidence": 0.5,
                         "supporting_spans": [inbound_raw], "contradicting_evidence": []}],
-        "unknowns": ["服务需求"],
-        "selected_strategy": {"strategy_code": "CLARIFY_NEED", "reason": "合成脚本仅做澄清",
+        "unknowns": ["service needs"],
+        "selected_strategy": {"strategy_code": "CLARIFY_NEED", "reason": "The synthetic script only clarifies needs",
                               "alternatives_rejected": []},
         "previous_objective_assessment": {"objective_id": previous_objective_id,
                                           "result": "UNKNOWN" if previous_objective_id else None,
                                           "observation_event_ids": observation_ids, "reason": None},
         "current_objective": {"objective_id": objective_id,
-                              "previous_objective_id": previous_objective_id, "goal": "澄清服务需求",
-                              "why_now": "合成脚本收到人工打回" if review else "合成脚本收到新消息",
+                              "previous_objective_id": previous_objective_id, "goal": "Clarify service needs",
+                              "why_now": "The synthetic script received human revision feedback" if review else "The synthetic script received a new message",
                               "trigger_event_ids": observation_ids,
-                              "status": "ACTIVE", "success_signals": ["说出服务环节"],
-                              "failure_signals": ["明确退出"], "attempt_count": 1, "max_attempts": 2},
-        "action_plan": {"selected_action": "询问服务环节", "expected_observation": "具体需求",
-                        "fallback_if_blocked": "人工处理"},
+                              "status": "ACTIVE", "success_signals": ["Student identifies a service area"],
+                              "failure_signals": ["Student explicitly exits"], "attempt_count": 1, "max_attempts": 2},
+        "action_plan": {"selected_action": "Ask which service area matters", "expected_observation": "A specific need",
+                        "fallback_if_blocked": "Human review"},
         "offer": {"state": "NONE", "offer_id": None, "offer_version": None, "proposal": None},
         "content_contract": {"must_include": [], "may_include": [], "must_not_include": [],
-                             "semantic_draft": text, "desired_next_step": "说明需求",
+                             "semantic_draft": text, "desired_next_step": "Explain the need",
                              "communication_emphasis": "BALANCED"},
         "evidence_ids": [], "program_claims": [], "stop_required": False,
         "handoff_reason": None, "human_approval_required": True,
@@ -68,8 +68,8 @@ def scripted_turn(inbound_id: str, inbound_raw: str, previous_objective_id: str 
                    "STRATEGY_ERROR": "STRATEGY"}.get(feedback, "NATURALNESS")
         comment = review["payload"]["comment"]
         script["review_reflection"] = {
-            "failure_type": failure, "what_was_wrong": "合成人工打回意见需要处理",
-            "evidence": [comment[:160]], "revision_plan": ["按人工意见重新检查当前草稿"],
+            "failure_type": failure, "what_was_wrong": "Synthetic human revision feedback needs to be addressed",
+            "evidence": [comment[:160]], "revision_plan": ["Recheck the current draft against human feedback"],
             "applies_to": "CURRENT_DRAFT",
         }
     return script
@@ -127,7 +127,7 @@ def dispatch(api: OfflineWorkspaceApi, method: str, path: str, body: dict | None
             if review and any(event["event_type"] == "INBOUND_RECEIVED" and
                               event["revision"] > review["revision"] for event in workspace["events"]):
                 review = None
-            revised_text = "想先了解一下，你目前最希望我们帮你处理申请里的哪一块？" if review else "你现在最需要哪一项申请帮助？"
+            revised_text = "To help me understand, which part of your application would you most like us to help with?" if review else "Which part of your application do you need the most help with?"
             api.queue_script(sid, scripted_turn(inbound["event_id"], inbound["payload"]["raw_text"],
                                                 previous_id, revised_text, review))
         try:

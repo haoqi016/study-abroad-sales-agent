@@ -40,7 +40,7 @@ export function workspaceView(raw) {
 export class OfflineBridgeAdapter extends SalesWorkspaceApi {
   constructor(fetchImpl = (...args) => globalThis.fetch(...args), locationLike = globalThis.location) {
     super();
-    if (!bridgeSelected(locationLike)) throw new Error('本地合成桥接仅可在 127.0.0.1 显式启用。');
+    if (!bridgeSelected(locationLike)) throw new Error('The local synthetic bridge can only be enabled explicitly on 127.0.0.1.');
     this.fetchImpl = fetchImpl;
   }
 
@@ -52,7 +52,7 @@ export class OfflineBridgeAdapter extends SalesWorkspaceApi {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error(`本地桥接拒绝操作：${payload.error || response.status}`);
+    if (!response.ok) throw new Error(`The local bridge rejected the operation: ${payload.error || response.status}`);
     return payload;
   }
 
@@ -72,7 +72,7 @@ export class OfflineBridgeAdapter extends SalesWorkspaceApi {
     const result = await this.#request('POST', this.#path(id, 'decision'), { demo_only: true });
     const outcome = result.pipeline;
     if (!['REVIEW_REQUIRED', 'APPROVAL_REQUIRED', 'STOPPED'].includes(outcome?.status)) {
-      throw new Error(`本地合成决策未生成可审核草稿：${result.pipeline?.status || 'UNKNOWN'} ${array(result.pipeline?.reason_codes).join('、')}`);
+      throw new Error(`The local synthetic decision did not produce a reviewable draft: ${result.pipeline?.status || 'UNKNOWN'} ${array(result.pipeline?.reason_codes).join(', ')}`);
     }
     return { ...workspaceView(result.workspace), pipeline_outcome: outcome };
   }
@@ -82,16 +82,16 @@ export class OfflineBridgeAdapter extends SalesWorkspaceApi {
   async reviewCustomOffer(id, review) {
     if (['REQUEST_CHANGES', 'REJECT'].includes(review.action)) {
       const comment = String(review.comment || '').trim();
-      if (!comment) throw new Error('请填写内部审核理由。');
+      if (!comment) throw new Error('Enter an internal review reason.');
       return workspaceView(await this.#request('POST', this.#path(id, 'offer-review'), {
         action: review.action, offer_id: review.offer_id, comment, demo_only: true,
       }));
     }
-    if (review.action !== 'APPROVE') throw new Error('不支持的定制 Offer 审核动作。');
+    if (review.action !== 'APPROVE') throw new Error('Unsupported custom offer review action.');
     const approval = review;
-    if (approval.confirmed_approval !== true) throw new Error('请先确认已人工核对产品、交付与定价。');
+    if (approval.confirmed_approval !== true) throw new Error('Confirm that a human has checked the product, delivery, and pricing.');
     if (['PRODUCT', 'DELIVERY', 'PRICING'].some(role => !approval.confirmed_roles?.includes(role))) {
-      throw new Error('产品、交付、定价三个审批角色均须确认。');
+      throw new Error('All three approval roles must be confirmed: product, delivery, and pricing.');
     }
     return workspaceView(await this.#request('POST', this.#path(id, 'offer-review'), {
       action: 'APPROVE',
@@ -102,14 +102,14 @@ export class OfflineBridgeAdapter extends SalesWorkspaceApi {
     }));
   }
   async recordActualSent(id, sent) {
-    if (sent.confirmed_external_send !== true) throw new Error('请确认已在外部渠道人工发送；本页不会发送。');
+    if (sent.confirmed_external_send !== true) throw new Error('Confirm the message was sent by a human through an external channel; this page does not send it.');
     return workspaceView(await this.#request('POST', this.#path(id, 'actual-sent'), { ...sent, demo_only: true }));
   }
   async labelProgressAssessment(id, label) {
     const assessment_event_id = String(label.assessment_event_id || '').trim();
     const human_label = String(label.human_label || '').trim();
     const reason = String(label.reason || '').trim();
-    if (!assessment_event_id || !human_label || !reason) throw new Error('请选择判断标签并填写依据。');
+    if (!assessment_event_id || !human_label || !reason) throw new Error('Select an assessment label and enter a reason.');
     return workspaceView(await this.#request('POST', this.#path(id, 'progress-label'), {
       demo_only: true, assessment_event_id, human_label, reason,
     }));
@@ -123,8 +123,8 @@ export class OfflineBridgeAdapter extends SalesWorkspaceApi {
       const type = w.approved_draft_id ? 'SEND_DUE' : w.draft_status === 'PENDING_REVIEW' ? 'REVIEW_DUE' :
         w.has_pending_offer ? 'OFFER_REVIEW' : w.latest_event_type === 'INBOUND_RECEIVED' ? 'NEW_INBOUND' : null;
       if (type) items.push({ student_id: w.student_id, display_name: w.display_name, type,
-        label: { SEND_DUE: '已批准草稿，待人工在外部渠道发送', REVIEW_DUE: '草稿待审核，不能发送',
-          OFFER_REVIEW: '定制方案待负责人审核', NEW_INBOUND: '学生有新消息，需重新判断' }[type] });
+        label: { SEND_DUE: 'Approved draft awaits human external send', REVIEW_DUE: 'Draft awaits review and cannot be sent',
+          OFFER_REVIEW: 'Custom package awaits approver review', NEW_INBOUND: 'New student message requires a new assessment' }[type] });
     }
     return items;
   }

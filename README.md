@@ -1,6 +1,6 @@
-# Study-abroad Sales Agent
+# Study-Abroad Sales Agent (V2 offline coursework prototype)
 
-An offline prototype for helping a human advisor decide and draft the next response in a study-abroad sales conversation. It is designed to separate **what to do next** from **how to say it**, while keeping factual and commercial commitments reviewable.
+An English-language, synthetic-data prototype that helps a human adviser decide and draft the next response in a study-abroad sales conversation. V2 separates **what to do next** from **how to say it** and keeps factual and commercial commitments reviewable. The browser workspace and local bridge are a demonstration, not a customer messaging service.
 
 ## The problem
 
@@ -19,13 +19,14 @@ flowchart LR
     G --> H[Human records what was actually sent]
 ```
 
-- The **Decision / Strategy Agent** chooses a bounded objective and next action, with evidence and approval constraints.
-- The **Conversation Agent** turns the approved content contract into natural wording without changing material facts or commitments.
-- Deterministic checks and human review separate internal decisions, drafts, and messages actually sent.
+- The **Decision / Strategy stage** proposes a bounded objective, next action, evidence IDs, and a content contract. It may request approved read-only tools; unavailable evidence must not become a factual claim.
+- The **Conversation stage** turns that contract into natural wording without changing material facts or commitments.
+- Deterministic **policy Gates** check the decision and draft. An unapproved custom offer needs a separate human approval and a new decision.
+- The **event store** keeps inbound text, context, decisions, drafts, reviews, approvals, and a human-entered record of what was actually sent distinct. A draft or approval is never itself a send.
 
 ## Code in this repository
 
-This is a curated snapshot of the offline V2 architecture, with a fresh Git history. It includes:
+The repository contains the V2 offline architecture and coursework fixtures:
 
 | Path | Purpose |
 | --- | --- |
@@ -35,8 +36,10 @@ This is a curated snapshot of the offline V2 architecture, with a fresh Git hist
 | `sales_agent/v2_offline_api/` | Adapter for the local synthetic workspace |
 | `web/` | Browser demo and loopback-only Python bridge |
 | `knowledge/advantages.v1.json` | Invented, digest-pinned advantage cards used only to exercise the tool path |
+| `evals/` | English synthetic development cases and repeatable evaluation protocol |
+| `analysis/` | B0/B1/B2 cost assumptions, calculator, sensitivity, and limitations |
 
-The product prices in `policy.py` and the advantage cards are **invented portfolio fixtures**. The private repository's actual price policy, approved business claims, internal Gold cases, evaluation transcripts, course files, and Git history are not present here.
+The product prices in `policy.py`, advantage cards, student details, Gold-style cases, and cost inputs are **invented coursework fixtures**. Do not interpret them as an agency's approved prices, verified claims, customer records, or observed business performance.
 
 ## Run locally
 
@@ -49,16 +52,26 @@ node --test web/tests/*.test.js
 python3 web/bridge_server.py 8765
 ```
 
-Open `http://127.0.0.1:8765/?bridge=offline` for the synthetic workspace. The bridge binds to loopback and does not connect to a CRM or messaging channel. The default mode uses a fixed script. A local Ollama experiment is available through the explicit `--ollama-model` option; its output remains subject to the same gates and human-review path.
+Open `http://127.0.0.1:8765/?bridge=offline` for the synthetic workspace. The bridge binds to loopback and does not connect to a CRM or messaging channel. The default mode uses a fixed script. A local Ollama experiment is available through the explicit `--ollama-model` option; its output remains subject to the same Gates and human-review path. See the [offline adapter guide](sales_agent/v2_offline_api/README.md) and [browser guide](web/README.md) for the exact local workflow.
 
-Local tests and scripted scenarios exercise the components. Live external data sources and a fully accepted model-driven end-to-end sales flow have not been established. The system does not automatically contact students.
+**Typical demo flow:** create a clearly marked synthetic student, record an inbound message, request a decision, inspect the Gate result and draft, request a revision or approve it, then record an external send only if a human claims to have sent the exact text. The system itself never contacts a student. A local outcome entry is only an operator assertion; it does not verify payment or conversion.
 
-Synthetic conversations are useful for regression testing but do not demonstrate conversion, customer trust, or real-world sales performance.
+## Evaluation and cost
+
+The [evaluation guide](evals/README.md) explains the English development cases, labels, B0/B1/B2 comparison, commands, scoring, and limits. The cases are synthetic adaptations and newly invented challenges. They are **not** the private, owner-approved Gold set and not an independent holdout. Scripted tests can check schema, event lineage, policy constraints and reproducibility; adviser judgment and real customer outcomes remain unmeasured.
+
+The [cost analysis](analysis/COST_ANALYSIS.md) compares a zero-model rule/template baseline (B0), a one-call baseline (B1), and the V2 multi-stage path (B2). Its prices, tokens, handling times, volume, fixed costs, build effort and acceptance rates are **assumptions**, not observed spend or savings. Reproduce its arithmetic with `python3 analysis/cost_model.py` and `python3 -m unittest analysis.test_cost_model -v`.
+
+## Current status
+
+The local scripted pipeline, review states, Gates, synthetic event store, browser demo, and reproducible development fixtures run offline. The optional local model path is experimental. Approved live programme/case sources, production authentication, CRM or messaging integration, measured human effort, independent blinded business review, and real outcome validation are pending. No conversion improvement or production readiness is claimed.
+
+Synthetic conversations support regression testing but do not demonstrate conversion, customer trust, or real-world sales performance.
 
 ## My work
 
-I defined the target workflow, the separation between strategy and wording, the evidence and policy boundaries, and the review criteria. I iterated on the prototype with AI coding tools and inspected its behavior through local tests and traces.
+The project defines the target workflow, the separation between strategy and wording, the evidence and policy boundaries, and review criteria. It was iterated with AI coding tools and inspected through local tests and traces. The coursework evaluation and cost appendices expose assumptions and remaining evidence gaps.
 
 ## Disclosure boundary
 
-This code release excludes customer records, private source databases, exact price and negotiation rules, internal evaluation transcripts, and credentials. Do not enter real student data into the demo.
+This code release contains synthetic fixtures only. Do not enter real student data into the demo.

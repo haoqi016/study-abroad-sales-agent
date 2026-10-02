@@ -1,9 +1,9 @@
 {
-  "name": "Sales 工作台 · 合成数据演示",
-  "short_name": "Sales 演示",
+  "name": "Sales Workspace · Synthetic Demo",
+  "short_name": "Sales Demo",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f5f3ee",
   "theme_color": "#17283a",
-  "lang": "zh-CN"
+  "lang": "en"
 }

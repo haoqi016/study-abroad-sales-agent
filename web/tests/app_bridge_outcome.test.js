@@ -10,11 +10,11 @@ test('failed bridge decision refreshes persisted workspace without a success not
   const original = { document: globalThis.document, location: globalThis.location,
     fetch: globalThis.fetch };
   const student = {
-    student_id: 's1', display_name: 'DEMO 合成学生', revision: 1,
+    student_id: 's1', display_name: 'DEMO Student', revision: 1,
     source: { channel: 'OTHER' }, education: {}, targets: {},
     sales: { stage: 'NEW', contact_permission: 'ALLOWED' },
     events: [{ event_id: 'inbound-1', event_type: 'INBOUND_RECEIVED',
-      payload: { raw_text: '合成：想了解申请' } }],
+      payload: { raw_text: 'DEMO: I want to know about applications' } }],
     memory: [], drafts: [], sent: [], decision: null, offer: null,
     draft_status: 'NONE', has_pending_offer: false,
   };
@@ -49,7 +49,7 @@ test('failed bridge decision refreshes persisted workspace without a success not
     assert.equal(workspaceReads, 2);
     assert.match(root.innerHTML, /HANDOFF.*MODEL_PROVIDER_UNAVAILABLE_OR_INVALID/);
     assert.match(root.innerHTML, /TURN_CONTEXT_BUILT/);
-    assert.doesNotMatch(root.innerHTML, /草稿已通过当前 Gate/);
+    assert.doesNotMatch(root.innerHTML, /draft passed the current Gate/);
   } finally {
     globalThis.document = original.document;
     globalThis.location = original.location;
@@ -63,7 +63,7 @@ test('standard offer is shown as a standard quote without custom approval claim'
   const original = { document: globalThis.document, location: globalThis.location,
     fetch: globalThis.fetch };
   const student = {
-    student_id: 's2', display_name: 'DEMO 合成学生', revision: 1,
+    student_id: 's2', display_name: 'DEMO Student', revision: 1,
     source: { channel: 'OTHER' }, education: {}, targets: {},
     sales: { stage: 'CONSULTING', contact_permission: 'ALLOWED' },
     events: [], memory: [], drafts: [], sent: [], decision: null,
@@ -84,11 +84,11 @@ test('standard offer is shown as a standard quote without custom approval claim'
     await handlers.get('click')({ target: { closest: () => ({
       dataset: { action: 'open-student', id: 's2' },
     }) } });
-    assert.match(root.innerHTML, /<h2>标准 Offer<\/h2>/);
-    assert.match(root.innerHTML, /1000 元/);
+    assert.match(root.innerHTML, /<h2>Standard offer<\/h2>/);
+    assert.match(root.innerHTML, /1000 CNY/);
     assert.match(root.innerHTML, /portfolio-synthetic-pricing-v1/);
-    assert.doesNotMatch(root.innerHTML, /定制 Offer · 已由人工批准/);
-    assert.doesNotMatch(root.innerHTML, /演示：人工批准组合与价格/);
+    assert.doesNotMatch(root.innerHTML, /Custom offer · Approved by a human/);
+    assert.doesNotMatch(root.innerHTML, /Demo: approve package and price/);
   } finally {
     globalThis.document = original.document;
     globalThis.location = original.location;
@@ -102,14 +102,14 @@ test('bridge custom offer form exposes terms and all three role confirmations', 
   const original = { document: globalThis.document, location: globalThis.location,
     fetch: globalThis.fetch };
   const student = {
-    student_id: 's3', display_name: 'DEMO 合成学生', revision: 1,
+    student_id: 's3', display_name: 'DEMO Student', revision: 1,
     source: { channel: 'OTHER' }, education: {}, targets: {},
     sales: { stage: 'CONSULTING', contact_permission: 'ALLOWED' },
     events: [], memory: [], drafts: [], sent: [], decision: null,
     offer: { state: 'CUSTOM_OFFER_PROPOSAL', proposal: {
-      proposed_scope: ['文书'], explicit_exclusions: ['递交'],
-      proposed_price: 9800, payment_terms: ['一次付清'],
-      customer_need_evidence: ['只要文书'], delivery_requirements: ['核对产能'], risks: [],
+      proposed_scope: ['Essay support'], explicit_exclusions: ['Submission'],
+      proposed_price: 9800, payment_terms: ['Single payment'],
+      customer_need_evidence: ['Only essay support'], delivery_requirements: ['Check delivery capacity'], risks: [],
     } },
     draft_status: 'NONE', has_pending_offer: true,
   };
@@ -129,7 +129,7 @@ test('bridge custom offer form exposes terms and all three role confirmations', 
       'role_PRODUCT', 'role_DELIVERY', 'role_PRICING', 'confirmed_approval']) {
       assert.match(root.innerHTML, new RegExp(`name="${field}"`));
     }
-    assert.match(root.innerHTML, /这只是内部提案/);
+    assert.match(root.innerHTML, /This is an internal proposal/);
     assert.match(root.innerHTML, /name="review_action" value="REQUEST_CHANGES"/);
     assert.match(root.innerHTML, /name="review_action" value="REJECT"/);
     assert.match(root.innerHTML, /name="comment" rows="3" required/);
@@ -147,17 +147,17 @@ test('reviewed custom offers stay internal and never show approval or send contr
     const original = { document: globalThis.document, location: globalThis.location,
       fetch: globalThis.fetch };
     const student = {
-      student_id: 's4', display_name: 'DEMO 合成学生', revision: 1,
+      student_id: 's4', display_name: 'DEMO Student', revision: 1,
       source: { channel: 'OTHER' }, education: {}, targets: {},
       sales: { stage: 'CONSULTING', contact_permission: 'ALLOWED' },
       events: [{ event_id: 'review-1', event_type: 'CUSTOM_OFFER_REVIEW',
-        payload: { action, comment: '交付条件无法确认' } }],
+        payload: { action, comment: 'Delivery conditions cannot be confirmed' } }],
       memory: [], drafts: [], sent: [], decision: null,
       offer: { state: 'CUSTOM_OFFER_PROPOSAL', review_action: action,
-        review_event_id: 'review-1', proposal: { proposed_scope: ['文书'],
-          explicit_exclusions: ['递交'], proposed_price: 9800,
-          payment_terms: ['一次付清'], customer_need_evidence: ['只要文书'],
-          delivery_requirements: ['核对产能'], risks: ['尚未确认交付'] } },
+        review_event_id: 'review-1', proposal: { proposed_scope: ['Essay support'],
+          explicit_exclusions: ['Submission'], proposed_price: 9800,
+          payment_terms: ['Single payment'], customer_need_evidence: ['Only essay support'],
+          delivery_requirements: ['Check delivery capacity'], risks: ['Delivery unconfirmed'] } },
       draft_status: 'NONE', has_pending_offer: false,
     };
     globalThis.document = { querySelector: () => root };
@@ -171,11 +171,11 @@ test('reviewed custom offers stay internal and never show approval or send contr
       await handlers.get('click')({ target: { closest: () => ({
         dataset: { action: 'open-student', id: 's4' },
       }) } });
-      assert.match(root.innerHTML, new RegExp(action === 'REJECT' ? '定制 Offer · 已拒绝' : '定制 Offer · 已打回修改'));
-      assert.match(root.innerHTML, /交付条件无法确认/);
-      assert.match(root.innerHTML, /9800 元（内部，未批准）/);
-      assert.doesNotMatch(root.innerHTML, /定制 Offer · 已由人工批准/);
-      assert.doesNotMatch(root.innerHTML, /已批准价格/);
+      assert.match(root.innerHTML, new RegExp(action === 'REJECT' ? 'Custom offer · Rejected' : 'Custom offer · Returned for changes'));
+      assert.match(root.innerHTML, /Delivery conditions cannot be confirmed/);
+      assert.match(root.innerHTML, /9800 CNY \(internal, unapproved\)/);
+      assert.doesNotMatch(root.innerHTML, /Custom offer · Approved by a human/);
+      assert.doesNotMatch(root.innerHTML, /Approved price/);
       assert.doesNotMatch(root.innerHTML, /id="offer-form"|id="sent-form"|data-action="approve-draft"/);
     } finally {
       globalThis.document = original.document;

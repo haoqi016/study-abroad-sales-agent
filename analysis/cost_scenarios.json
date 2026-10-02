@@ -1,0 +1,57 @@
+{
+  "schema_version": "v2-cost-scenario-1",
+  "evidence_status": "SCENARIO_ONLY",
+  "currency": "USD",
+  "purpose": "Illustrative first-turn price-objection cost comparison; no field costs or benefits were measured.",
+  "provenance": {
+    "architecture": "sales_agent/v2_pipeline/orchestrator.py: tool_plan, decision and conversation provider boundaries; deterministic policy gates and human review",
+    "public_demo": "sales_agent/v2_offline_api/adapter.py and web/bridge_server.py: scripted synthetic default, optional local model, no outbound sender",
+    "all_numeric_inputs": "Author-defined scenario assumptions for coursework. These are not invoices, vendor quotes, observed adviser timings, measured token counts, deployment estimates, or conversion results."
+  },
+  "assumed_model_prices_usd_per_million_tokens": {
+    "input": 0.5,
+    "output": 2.0,
+    "basis": "ASSUMED blended rate for arithmetic only; replace with dated provider invoice and applicable cache/tool rates before making a purchasing decision."
+  },
+  "arms": {
+    "B0": {
+      "description": "ASSUMED deterministic keyword/template plus the same policy and human review boundary; analytical baseline, not a public runtime mode.",
+      "calls": [],
+      "human_seconds": {"review": 300, "routine_correction": 120, "escalation": 30},
+      "rework_probability": 0.25,
+      "rework_seconds_if_needed": 240,
+      "fixed_monthly_usd": 20,
+      "build_hours": 8,
+      "accepted_action_probability": 0.65
+    },
+    "B1": {
+      "description": "ASSUMED single structured decision call followed by deterministic gates and human review; analytical baseline, not a public runtime mode.",
+      "calls": [{"role": "decision_and_wording", "input_tokens": 1200, "output_tokens": 350}],
+      "human_seconds": {"review": 240, "routine_correction": 90, "escalation": 45},
+      "rework_probability": 0.22,
+      "rework_seconds_if_needed": 240,
+      "fixed_monthly_usd": 40,
+      "build_hours": 16,
+      "accepted_action_probability": 0.7
+    },
+    "B2": {
+      "description": "ASSUMED V2 full path with tool plan, decision and conversation calls, gates and human review; actual paths can stop early or call again after feedback.",
+      "calls": [
+        {"role": "tool_plan", "input_tokens": 700, "output_tokens": 120},
+        {"role": "decision", "input_tokens": 1900, "output_tokens": 700},
+        {"role": "conversation", "input_tokens": 1400, "output_tokens": 350}
+      ],
+      "human_seconds": {"review": 210, "routine_correction": 75, "escalation": 60},
+      "rework_probability": 0.2,
+      "rework_seconds_if_needed": 240,
+      "fixed_monthly_usd": 90,
+      "build_hours": 40,
+      "accepted_action_probability": 0.76
+    }
+  },
+  "tiers": [
+    {"name": "low", "monthly_enquiries": 50, "loaded_human_usd_per_hour": 10, "build_amortization_months": 12},
+    {"name": "base", "monthly_enquiries": 200, "loaded_human_usd_per_hour": 20, "build_amortization_months": 12},
+    {"name": "high", "monthly_enquiries": 1000, "loaded_human_usd_per_hour": 40, "build_amortization_months": 12}
+  ]
+}

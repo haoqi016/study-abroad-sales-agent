@@ -235,7 +235,7 @@ class V2SalesPipeline:
 
     @staticmethod
     def _explicit_do_not_contact(text: str) -> bool:
-        return bool(re.search(r"(?:不要|别|请别)\s*(?:再)?\s*联系我|别再给我发(?:消息|信息)", text))
+        return bool(re.search(r"(?:不要|别|请别)\s*(?:再)?\s*联系我|别再给我发(?:消息|信息)|\b(?:do\s+not|don't|stop)\s+(?:contact(?:ing)?|message|messaging|text(?:ing)?)\s+me\b", text, re.I))
 
     @staticmethod
     def _trace_status(tool_status: str) -> str:
@@ -357,7 +357,7 @@ class V2SalesPipeline:
         semantic = decision["content_contract"]["semantic_draft"]
         import re
         quoted_prices = {int(group) for pair in re.findall(
-            r"[¥￥]\s*(\d{3,6})|(?<!\d)(\d{3,6})\s*(?:元|块|人民币)", semantic)
+            r"[¥￥$£]\s*(\d{3,6})|(?<!\d)(\d{3,6})\s*(?:元|块|人民币|RMB|CNY|USD|SGD|dollars?|pounds?)", semantic, re.I)
                          for group in pair if group}
         if quoted_prices and quoted_prices != {price}:
             raise PolicyViolation("APPROVED_CUSTOM_PRICE_MISMATCH")
@@ -383,7 +383,7 @@ class V2SalesPipeline:
 
     @staticmethod
     def _budget_amount_from_span(span: str) -> int | None:
-        arabic = re.search(r"(?<!\d)(\d{4,6})(?!\d)", span)
+        arabic = re.search(r"(?<!\d)(\d{3,6})(?!\d)", span)
         if arabic:
             return int(arabic.group(1))
         wan = re.search(r"(?<!\d)(\d+(?:\.\d+)?)\s*万", span)
@@ -433,8 +433,8 @@ class V2SalesPipeline:
             if candidate["category"] == "BUDGET" and type(value) is not int:
                 raise PolicyViolation("BUDGET_NORMALIZED_INTEGER_REQUIRED")
             if candidate["category"] == "BUDGET" and type(value) is int:
-                if re.search(r"(?:不是|并非|不代表|听说|据说|别人|朋友|她说|他说)", span) or not re.search(
-                    r"(?:总共|总预算|预算|最多|上限|封顶)", span):
+                if re.search(r"(?:不是|并非|不代表|听说|据说|别人|朋友|她说|他说|\b(?:not\s+my\s+budget|someone\s+else(?:'s)?|i\s+heard|my\s+friend)\b)", span, re.I) or not re.search(
+                    r"(?:总共|总预算|预算|最多|上限|封顶|\b(?:my\s+)?(?:total\s+)?budget\b|\bat\s+most\b|\bceiling\b)", span, re.I):
                     raise PolicyViolation("BUDGET_STATEMENT_NEEDS_HUMAN_CONFIRMATION")
                 if self._budget_amount_from_span(span) != value:
                     raise PolicyViolation("MEMORY_BUDGET_NORMALIZATION_MISMATCH")

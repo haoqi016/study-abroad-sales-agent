@@ -54,23 +54,45 @@ def _opaque_id() -> str:
 
 
 def _sent_offer_price(text: str) -> int | None:
-    """Extract one explicit, affirmative CNY quote; ambiguity stays unstructured."""
-    amounts = re.findall(r"(?<!\d)(\d{3,7})\s*(?:元|块)(?!\d)", text)
-    if len(amounts) != 1 or not re.search(r"报价|价格|总价|费用|方案|全套|按|给你|给到|只要|收你|¥|￥", text):
+    """Extract one explicit, affirmative sent quote; ambiguity stays unstructured."""
+    amounts = list(re.finditer(
+        r"(?<!\d)(?:[¥￥$£]\s*(\d{3,7})|(\d{3,7})\s*(?:元|块|RMB|CNY|USD|SGD|dollars?|pounds?))(?!\d)",
+        text, re.I))
+    if len(amounts) != 1 or not re.search(
+        r"报价|价格|总价|费用|方案|全套|按|给你|给到|只要|收你|¥|￥|"
+        r"\b(?:quote|price|costs?|package|plan|offer|charge)\b|[$£]", text, re.I):
         return None
-    before = text[:text.find(amounts[0])][-12:]
-    if re.search(r"不是|并非|不能|无法|不按|原价|预算|最多|上限|之前|原本", before):
+    match = amounts[0]
+    before = text[max(0, match.start() - 45):match.start()]
+    if re.search(r"不是|并非|不能|无法|不按|原价|预算|最多|上限|之前|原本|"
+                 r"\b(?:not|cannot|can't|budget|at\s+most|up\s+to|original|previous)\b", before, re.I):
         return None
-    return int(amounts[0])
+    return int(match.group(1) or match.group(2))
+
+
+def _sent_offer_currency(text: str) -> str | None:
+    """Currency is recorded only when the literal sent text identifies it."""
+    if re.search(r"[¥￥]|\b(?:RMB|CNY)\b|\d\s*(?:元|块)", text, re.I):
+        return "CNY"
+    if re.search(r"\$|\b(?:USD|dollars?)\b", text, re.I):
+        return "USD"
+    if re.search(r"£|\b(?:GBP|pounds?)\b", text, re.I):
+        return "GBP"
+    if re.search(r"\bSGD\b", text, re.I):
+        return "SGD"
+    return None
 
 
 def _sent_payment_terms(text: str) -> list[str]:
     """Keep only literal, affirmative payment phrases from the sent message."""
-    candidates = re.finditer(r"一次付清|全款支付|分[一二两三四五六七八九十\d]+期(?:付款)?|分期付款", text)
+    candidates = re.finditer(
+        r"一次付清|全款支付|分[一二两三四五六七八九十\d]+期(?:付款)?|分期付款|"
+        r"\b(?:pay\s+in\s+full|full\s+payment|pay\s+in\s+\d+\s+installments?|payment\s+plan|pay\s+half\s+(?:now|upfront))\b",
+        text, re.I)
     terms = []
     for match in candidates:
-        before = text[max(0, match.start() - 5):match.start()]
-        if not re.search(r"(?:不|不能|无法|并非|不是)\s*$", before) and match.group() not in terms:
+        before = text[max(0, match.start() - 35):match.start()]
+        if not re.search(r"(?:不|不能|无法|并非|不是|\b(?:not|no|cannot|can't|don't|do\s+not)\s+(?:(?:offer|allow|support|have)\s+)?(?:an?\s+)?)$", before, re.I) and match.group() not in terms:
             terms.append(match.group())
     return terms
 
@@ -630,14 +652,14 @@ class V2RuntimeStore:
         text = sent["payload"]["actual_sent_text"]
         price = _sent_offer_price(text)
         terms = _sent_payment_terms(text)
-        if price is None and not terms and not re.search(r"报价待定|价格待定|具体价格还需要确认", text):
+        if price is None and not terms and not re.search(r"报价待定|价格待定|具体价格还需要确认|\b(?:price\s+(?:is\s+)?pending|price\s+to\s+be\s+confirmed|quote\s+pending)\b", text, re.I):
             # A draft or approval with no actual commercial content is not a sent Offer.
             return None
         value = {
             "actual_sent_text": text,
             "price": price,
             "price_status": "EXPLICIT_AMOUNT" if price is not None else "UNRESOLVED",
-            "currency": "CNY" if price is not None else None,
+            "currency": _sent_offer_currency(text) if price is not None else None,
             "payment_terms": terms,
             "scope": [],
             "exclusions": [],
@@ -750,7 +772,7 @@ class V2RuntimeStore:
                 "student_memory_revision": memory["memory_revision"],
                 "student_record_field_provenance": snapshot["field_provenance"] if snapshot else {},
                 "global_goal": {"version": global_goal_version,
-                                "statement": "在事实、权限和客户意愿边界内推进合适客户签约"},
+                                "statement": "Support an appropriate enrollment within verified facts, delivery authority, and the student's wishes."},
                 "policy_versions": policy_versions,
                 "current_state": {
                     "sales_stage": snapshot["snapshot"].get("sales", {}).get("stage", "NEW") if snapshot else "UNKNOWN",

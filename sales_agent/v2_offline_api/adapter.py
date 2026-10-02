@@ -389,10 +389,10 @@ class OfflineWorkspaceApi:
             if latest_prior_send and signal == "OBJECTION_CLARIFIED":
                 self._store.record_case_reflection(
                     student_id=student_id, conversation_id=conversation_id,
-                    observed_outcome="学生澄清异议：" + spans[0],
-                    possible_explanation="本轮原话明确澄清了异议；下一轮需要重新评估当前小目标。",
-                    alternative_explanations=["无法从单次回复判断之前的发送内容是否导致这次澄清。"],
-                    limitations=["仅基于当前学生原话；未经人工核验。", "不代表签约、付款或策略有效。"],
+                    observed_outcome="The student clarified the objection: " + spans[0],
+                    possible_explanation="The current reply explicitly clarified the objection; reassess the active objective next turn.",
+                    alternative_explanations=["One reply cannot establish that the prior message caused this clarification."],
+                    limitations=["Based only on the student's current words; not verified by a person.", "This is not evidence of a signed contract, payment, or strategy effectiveness."],
                     based_on_event_ids=[latest_prior_send["event_id"], inbound["event_id"], assessment["event_id"]],
                     idempotency_key=f"case-reflection:{inbound['event_id']}")
         return self.getWorkspace(student_id)

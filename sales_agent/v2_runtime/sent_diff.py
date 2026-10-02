@@ -19,7 +19,7 @@ def _is_pictograph(char: str) -> bool:
 
 def _style_core(text: str) -> str:
     # Only remove decoration at the end. Internal punctuation/spacing can be
-    # material: 1.5万 and 15万, or 100 0 and 1000, are not equivalent.
+    # Material: 15,000 and 150,000, or 100 0 and 1000, are not equivalent.
     normalized = unicodedata.normalize("NFKC", text).strip()
     while normalized and (normalized[-1] in _TERMINAL_PUNCTUATION or
                           _is_pictograph(normalized[-1]) or normalized[-1].isspace()):

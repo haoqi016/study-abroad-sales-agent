@@ -1,15 +1,19 @@
-# Sales V2 手机工作台（合成数据演示）
+# Sales V2 mobile workspace (synthetic demo)
 
-此目录是手机端交互演示，不连接真实 CRM、微信、Firebase 或推送。不要在本页录入真实学生信息。
+This folder is a mobile interface demo. It has no connection to a real CRM, WeChat account, Firebase service, or push notification provider. Do not enter real student information.
 
-浏览器内 DemoAdapter 仍是默认模式。在此目录运行 `python3 -m http.server 8765 --bind 127.0.0.1`，打开 `http://127.0.0.1:8765/`。此模式只有当前页面内存，刷新即清空。
+## Run
 
-若要演练 Python V2 离线适配器，在仓库根目录运行 `python3 web/bridge_server.py 8765`，打开 `http://127.0.0.1:8765/?bridge=offline`。页面“我的”中可切换两种模式。桥接服务只监听 `127.0.0.1`、同源提供静态页面和 JSON 路由，并拒绝非本地 Host/Origin；默认数据仅在 Python 进程内存中，服务重启即清空。可显式传入 `--sqlite-file /绝对路径/合成演示.sqlite3`，将合成事件保存在本机并于下次使用同一路径恢复；该文件并非真实客户数据库，也没有生产认证。请勿从其他设备、局域网或公开域名使用。
+The in-browser `DemoAdapter` is the default. From this directory, run `python3 -m http.server 8765 --bind 127.0.0.1` and open `http://127.0.0.1:8765/`. Data lives only in the current page and resets on reload.
 
-桥接只接受标记为 `demo_only` 的合成输入，拒绝联系人或身份字段。浏览器只提交学生消息和人工操作；默认决策输入是服务端固定合成脚本，经 `OfflineWorkspaceApi` 的 V2 Pipeline 与 Gate 处理。若要明确试验本机模型，请预先在 Ollama 安装模型，再启动 `python3 web/bridge_server.py 8765 --ollama-model qwen3.5:9b`（可用 `--ollama-timeout 240` 调整秒数）。该模式只请求固定的 `http://127.0.0.1:11434/api/chat`，使用同一 Pipeline、Gate 和人工审核链；模型调用或校验失败不会变成脚本成功。可能需要数分钟。`APPROVAL_REQUIRED` 会显示内部定制提案供合成人工审批，`STOPPED` 会显示停止原因；`HANDOFF` 或 Gate 失败会显示错误并刷新已记录的工作台事件。浏览器不能上传任意模型回答。页面展示来源事件 ID 和草稿审核状态；批准草稿后仍不会发送消息。只有勾选“已在外部渠道人工发送”并录入实际原文，才会在本地记录这一人工断言。该断言没有外部渠道核验。
+For the Python V2 offline adapter, run `python3 web/bridge_server.py 8765` from the repository root and open `http://127.0.0.1:8765/?bridge=offline`. The Settings page switches between modes. The bridge listens only on `127.0.0.1`, serves same-origin static files and JSON routes, and rejects nonlocal Host and Origin headers. By default, data is kept in Python process memory and resets on restart. To persist synthetic events locally, pass `--sqlite-file /absolute/path/synthetic-demo.sqlite3`; reuse that path to reopen the data. This file is not a real customer database and has no production authentication. Do not expose this service to another device, a LAN, or a public domain.
 
-运行 `node --test web/tests/*.test.js`、`python3 -m unittest web.tests.test_bridge_server -v` 检查合成流程和边界。
+The bridge accepts only inputs marked `demo_only` and rejects contact and identity fields. The browser submits student messages and human actions. The default server decision is a fixed synthetic script processed through `OfflineWorkspaceApi`, the V2 pipeline, and its Gate. To explicitly try a local model, install it in Ollama and run `python3 web/bridge_server.py 8765 --ollama-model qwen3.5:9b`; `--ollama-timeout 240` changes the timeout in seconds. This mode calls only `http://127.0.0.1:11434/api/chat` and uses the same pipeline, Gate, and human review flow. A failed model call or validation is not silently replaced with scripted success. A run may take several minutes.
 
-`api.js` 的 `SalesWorkspaceApi` 列出了接口方法；`DemoAdapter` 是纯页面实现，`bridge_api.js` 只映射本地 Python 离线结果。默认浏览器与脚本模式不调用模型，模拟决策不代表真实 Decision Agent 的输出；显式启用本机模型后也只得到合成实验输出，尚未通过业务 Eval。真实接入仍需要身份认证、学生权限校验、受保护的生产事件存储和独立验收。
+`APPROVAL_REQUIRED` shows an internal custom proposal for synthetic human approval. `STOPPED` shows the stop reason. `HANDOFF` or Gate failure shows an error and refreshes recorded workspace events. The browser cannot upload arbitrary model output. Source event IDs and draft review status are visible. Approval alone does not send a message. A human may record an external send only after checking the confirmation box and entering the exact text actually sent; the bridge cannot verify that external action.
 
-前端没有向学生发送消息的能力。“标记已发送”仅在销售人员已经通过外部渠道发送之后，录入实际发送的原文和时间。未获批的定制 Offer 不会生成可审批的对客草稿。手机推送属于后续里程碑，本演示只有站内待办列表。
+## Test and scope
+
+From the repository root, run `node --test web/tests/*.test.js` and `python3 -m unittest web.tests.test_bridge_server -v`. These cover synthetic flows and safety boundaries. `api.js` defines `SalesWorkspaceApi`; `DemoAdapter` operates entirely in the browser, while `bridge_api.js` maps local Python offline results. The default browser and scripted modes do not call a model. Their fixed decisions are not real Decision Agent output. Explicit local model output is still synthetic and has not passed business evaluation. Real integration requires authentication, student access checks, protected production event storage, real approvals, and independent acceptance testing.
+
+The frontend cannot send a student message. “Record external send” only stores the actual text and time after a salesperson has sent it elsewhere. An unapproved custom offer never creates a reviewable customer draft. Mobile push notifications are future work; this demo has an in-app task list only.

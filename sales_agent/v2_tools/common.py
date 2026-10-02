@@ -16,7 +16,8 @@ VALID_STATUSES = {"OK", "NO_RESULTS", "UNAVAILABLE", "INVALID_REQUEST", "POLICY_
 MAX_CATALOG_BYTES = 1_000_000
 _PRIVATE_PATTERN = re.compile(
     r"(?:[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:\+?86[- ]?)?1[3-9]\d{9}|"
-    r"(?:微信|手机号|身份证|客户编号|case[_ -]?id|student[_ -]?id|姓名)\s*[:：])",
+    r"(?:微信|手机号|身份证|客户编号|case[_ -]?id|student[_ -]?id|姓名|"
+    r"wechat|phone(?:\s+number)?|national\s+id|customer\s+id|full\s+name)\s*[:：])",
     re.IGNORECASE,
 )
 

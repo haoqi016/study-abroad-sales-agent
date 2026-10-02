@@ -23,11 +23,11 @@ TIERS = {"985", "211", "DOUBLE_FIRST_CLASS", "OTHER", "UNKNOWN"}
 SCORE_BANDS = {"75-79", "80-84", "85-89", "90+", "UNKNOWN"}
 OUTCOMES = {"OFFER", "REJECT", "WAITLIST", "INTERVIEW", "UNKNOWN"}
 DIFFERENCES = {
-    "INTERNSHIP_DIFFERENT": "该案例的实习经历与当前学生不同",
-    "LANGUAGE_DIFFERENT": "该案例的语言成绩与当前学生不同",
-    "MAJOR_DIFFERENT": "该案例的本科专业背景与当前学生不同",
-    "SCORE_BAND_DIFFERENT": "该案例的均分区间与当前学生不同",
-    "OTHER_BACKGROUND_UNKNOWN": "还有尚未核实的背景差异",
+    "INTERNSHIP_DIFFERENT": "The case student's internship experience differs from this student's.",
+    "LANGUAGE_DIFFERENT": "The case student's language score differs from this student's.",
+    "MAJOR_DIFFERENT": "The case student's undergraduate major differs from this student's.",
+    "SCORE_BAND_DIFFERENT": "The case student's grade band differs from this student's.",
+    "OTHER_BACKGROUND_UNKNOWN": "Other background differences have not been verified.",
 }
 MAJOR_FAMILY_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]{1,49}$")
 _AUDIT_REF_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_.:-]{1,99}$")
@@ -64,24 +64,24 @@ def _stated_in_current_message(key: str, value: Any, raw_text: str) -> bool:
         return False
     if key == "average_score" and type(value) in {int, float}:
         candidates = (str(value),)
-        prefix = r"(?:均分|平均分|成绩|分数|GPA|score)\s*(?:是|为|有)?\s*"
+        prefix = r"(?:均分|平均分|成绩|分数|GPA|score|average\s+(?:grade|score))\s*(?:是|为|有|is|of|:)?\s*"
     elif isinstance(value, str) and value.strip():
         candidates = (value, *_COUNTRY_WORDS.get(value, ())) if key == "target_country" else (value,)
         prefix = {
-            "undergraduate_university_raw": r"(?:本科|毕业于|就读于)\s*(?:是|在)?\s*",
-            "undergraduate_major_raw": r"(?:本科专业|专业是|就读专业)\s*",
-            "target_country": r"(?:想申请|申请|目标(?:是|为)?|计划去|考虑申请)\s*",
-            "target_university": r"(?:想申请|申请|目标(?:是|为)?|计划申请|考虑申请)\s*",
-            "target_program_or_major": r"(?:想申请|申请|目标(?:是|为)?|计划申请|考虑申请)\s*",
+            "undergraduate_university_raw": r"(?:本科|毕业于|就读于|graduated\s+from|study(?:ing)?\s+at|my\s+undergraduate\s+university\s+is)\s*(?:是|在)?\s*",
+            "undergraduate_major_raw": r"(?:本科专业|专业是|就读专业|my\s+(?:undergraduate\s+)?major\s+is|i\s+majored\s+in)\s*",
+            "target_country": r"(?:想申请|申请|目标(?:是|为)?|计划去|考虑申请|i\s+want\s+to\s+apply\s+to|i\s+plan\s+to\s+study\s+in|my\s+target\s+is)\s*",
+            "target_university": r"(?:想申请|申请|目标(?:是|为)?|计划申请|考虑申请|i\s+want\s+to\s+apply\s+to|my\s+target\s+university\s+is)\s*",
+            "target_program_or_major": r"(?:想申请|申请|目标(?:是|为)?|计划申请|考虑申请|i\s+want\s+to\s+apply\s+to|my\s+target\s+program\s+is)\s*",
         }[key]
     else:
         return False
     # Only an unambiguous first-person affirmative sentence is enough for
     # an unconfirmed fact. Anything attributed to another person or negated
     # falls back to human-confirmed CRM input.
-    for sentence in re.split(r"[。！？；;\n]", raw_text):
-        if not re.search(r"(?:我|本人)", sentence) or re.search(
-                r"(?:不是|并非|没有|不想|不申|不考虑|朋友|同学|别人|客户|他|她)", sentence):
+    for sentence in re.split(r"[。！？；;.!?\n]", raw_text):
+        if not re.search(r"(?:我|本人|\b(?:i|my)\b)", sentence, re.I) or re.search(
+                r"(?:不是|并非|没有|不想|不申|不考虑|朋友|同学|别人|客户|他|她|\b(?:not|don't|do\s+not|friend|classmate|someone\s+else|they)\b)", sentence, re.I):
             continue
         for candidate in candidates:
             token = re.escape(candidate.strip())

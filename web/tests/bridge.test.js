@@ -17,12 +17,12 @@ test('bridge profile create is one synthetic request without a platform identifi
   const api = new OfflineBridgeAdapter(async (path, options) => {
     requests.push({ path, options });
     return { ok: true, json: async () => ({ student_id: 's1', source: { channel: 'OTHER' },
-      targets: { universities: ['NUS'], programs_or_majors: ['统计'] },
-      sales: { decision_maker: '本人', next_action_reason: '演示回访' }, events: [], drafts: [], sent: [] }) };
+      targets: { universities: ['NUS'], programs_or_majors: ['Statistics'] },
+      sales: { decision_maker: 'Student', next_action_reason: 'Demo follow up' }, events: [], drafts: [], sent: [] }) };
   }, local);
-  const record = studentCreatePayload({ display_name: '合成同学', channel: 'OTHER', platform_handle: 'demo-only',
-    target_universities: 'NUS', target_programs: '统计', decision_maker: '本人',
-    next_action_at: '2026-10-05T15:30', next_action_reason: '演示回访' }, true);
+  const record = studentCreatePayload({ display_name: 'DEMO Student', channel: 'OTHER', platform_handle: 'demo-only',
+    target_universities: 'NUS', target_programs: 'Statistics', decision_maker: 'Student',
+    next_action_at: '2026-10-05T15:30', next_action_reason: 'Demo follow up' }, true);
   const workspace = await api.createStudent(record);
   assert.equal(requests.length, 1);
   assert.equal(requests[0].path, '/api/students');
@@ -31,11 +31,11 @@ test('bridge profile create is one synthetic request without a platform identifi
   assert.equal(JSON.stringify(body).includes('platform_handle'), false);
   assert.equal(body.demo_only, true);
   assert.deepEqual(body.targets.universities, ['NUS']);
-  assert.equal(body.sales.decision_maker, '本人');
-  assert.equal(workspace.sales.next_action_reason, '演示回访');
+  assert.equal(body.sales.decision_maker, 'Student');
+  assert.equal(workspace.sales.next_action_reason, 'Demo follow up');
 
   const update = studentUpdatePayload({ target_countries: 'SG', target_universities: 'NTU',
-    target_programs: '商科', stage: 'CONSULTING', contact_permission: 'DO_NOT_CONTACT',
+    target_programs: 'Business', stage: 'CONSULTING', contact_permission: 'DO_NOT_CONTACT',
     next_action_at: '', next_action_reason: '' }, 1);
   await api.updateStudent('s1', update);
   assert.equal(requests[1].path, '/api/students/s1');
@@ -47,11 +47,11 @@ test('workspace mapping preserves source event and keeps draft out of customer h
   const w = workspaceView({
     student_id: 's1', source: {}, targets: {}, education: {}, sales: {}, memory: [], sent: [],
     draft_status: 'DRAFTED', drafts: [{ draft_id: 'd1', revision: 1, status: 'DRAFTED', messages: [] }],
-    events: [{ event_id: 'e1', event_type: 'INBOUND_RECEIVED', payload: { raw_text: '合成原话' } },
-      { event_id: 'd1', event_type: 'DRAFTED', payload: { rendered_text: '草稿' } }],
+    events: [{ event_id: 'e1', event_type: 'INBOUND_RECEIVED', payload: { raw_text: 'Synthetic source message' } },
+      { event_id: 'd1', event_type: 'DRAFTED', payload: { rendered_text: 'Draft' } }],
     decision: { input_event_ids: ['e1'] },
   });
-  assert.equal(w.events[0].raw_content, '合成原话');
+  assert.equal(w.events[0].raw_content, 'Synthetic source message');
   assert.equal(w.events[1].raw_content, null);
   assert.deepEqual(w.decision.input_event_ids, ['e1']);
   assert.equal(w.decision.demo_only, true);
@@ -64,9 +64,9 @@ test('bridge requires external send assertion and sends no HTTP request without 
     requests.push({ path, options });
     return { ok: true, json: async () => ({ events: [], drafts: [], sent: [] }) };
   }, local);
-  await assert.rejects(api.recordActualSent('s1', { actual_sent_text: '合成已发' }), /确认已在外部渠道/);
+  await assert.rejects(api.recordActualSent('s1', { actual_sent_text: 'Synthetic sent text' }), /Confirm the message was sent by a human/);
   assert.equal(requests.length, 0);
-  await api.recordActualSent('s1', { actual_sent_text: '合成已发', confirmed_external_send: true });
+  await api.recordActualSent('s1', { actual_sent_text: 'Synthetic sent text', confirmed_external_send: true });
   assert.equal(requests[0].path, '/api/students/s1/actual-sent');
   assert.equal(requests[0].options.headers['X-Sales-Demo-Bridge'], '1');
   assert.equal(JSON.parse(requests[0].options.body).confirmed_external_send, true);
@@ -90,13 +90,13 @@ test('progress label posts a scoped synthetic event and requires reason', async 
   }, local);
   await assert.rejects(api.labelProgressAssessment('s1', {
     assessment_event_id: 'a1', human_label: 'NEUTRAL', reason: '   ',
-  }), /填写依据/);
+  }), /enter a reason/);
   assert.equal(requests.length, 0);
   await api.labelProgressAssessment('s1', {
-    assessment_event_id: 'a1', human_label: 'NEUTRAL', reason: ' 学生没有明确承诺 ',
+    assessment_event_id: 'a1', human_label: 'NEUTRAL', reason: ' The student made no explicit commitment ',
   });
   assert.deepEqual(requests, [{ path: '/api/students/s1/progress-label', body: {
-    demo_only: true, assessment_event_id: 'a1', human_label: 'NEUTRAL', reason: '学生没有明确承诺',
+    demo_only: true, assessment_event_id: 'a1', human_label: 'NEUTRAL', reason: 'The student made no explicit commitment',
   } }]);
 });
 
@@ -106,7 +106,7 @@ test('decision outcomes keep internal offer and stop states without claiming a d
     const rawWorkspace = { student_id: 's1', events: [], drafts: [], sent: [],
       has_pending_offer: status === 'APPROVAL_REQUIRED',
       offer: status === 'APPROVAL_REQUIRED' ? { state: 'CUSTOM_OFFER_PROPOSAL',
-        proposal: { proposed_scope: ['文书'] } } : null };
+        proposal: { proposed_scope: ['Essay support'] } } : null };
     const api = new OfflineBridgeAdapter(async () => ({ ok: true, json: async () => ({
       pipeline: { status, reason_codes: reason ? [reason] : [] }, workspace: rawWorkspace,
     }) }), local);
@@ -133,20 +133,20 @@ test('synthetic offer approval requires an explicit human assertion and sends sc
     requests.push({ path, options });
     return { ok: true, json: async () => ({ events: [], drafts: [], sent: [] }) };
   }, local);
-  const approval = { offer_id: 'demo-offer-s1', price: '9800', scope: ['文书'], exclusions: ['递交'],
-    payment_terms: ['一次付清'], valid_until: null,
+  const approval = { offer_id: 'demo-offer-s1', price: '9800', scope: ['Essay support'], exclusions: ['Submission'],
+    payment_terms: ['Single payment'], valid_until: null,
     confirmed_roles: ['PRODUCT', 'DELIVERY', 'PRICING'], confirmed_approval: true };
-  await assert.rejects(api.approveCustomOffer('s1', { ...approval, confirmed_approval: false }), /人工核对/);
+  await assert.rejects(api.approveCustomOffer('s1', { ...approval, confirmed_approval: false }), /a human has checked/);
   assert.equal(requests.length, 0);
   await assert.rejects(api.approveCustomOffer('s1', { ...approval,
-    confirmed_roles: ['PRODUCT', 'PRICING'] }), /三个审批角色/);
+    confirmed_roles: ['PRODUCT', 'PRICING'] }), /All three approval roles/);
   assert.equal(requests.length, 0);
   await api.approveCustomOffer('s1', approval);
   assert.equal(requests[0].path, '/api/students/s1/offer-review');
   assert.deepEqual(JSON.parse(requests[0].options.body), {
     action: 'APPROVE',
-    offer_id: 'demo-offer-s1', price: 9800, scope: ['文书'], exclusions: ['递交'],
-    payment_terms: ['一次付清'], valid_until: null,
+    offer_id: 'demo-offer-s1', price: 9800, scope: ['Essay support'], exclusions: ['Submission'],
+    payment_terms: ['Single payment'], valid_until: null,
     confirmed_roles: ['PRODUCT', 'DELIVERY', 'PRICING'], demo_only: true,
   });
 });
@@ -159,10 +159,10 @@ test('custom offer change and reject reviews require reasons and carry no approv
       offer: { state: 'CUSTOM_OFFER_PROPOSAL', review_action: JSON.parse(options.body).action },
       has_pending_offer: false }) };
   }, local);
-  await assert.rejects(api.reviewCustomOffer('s1', { action: 'REJECT', comment: '  ' }), /审核理由/);
+  await assert.rejects(api.reviewCustomOffer('s1', { action: 'REJECT', comment: '  ' }), /internal review reason/);
   assert.equal(requests.length, 0);
   for (const action of ['REQUEST_CHANGES', 'REJECT']) {
-    const result = await api.reviewCustomOffer('s1', { action, offer_id: 'offer-s1', comment: '交付条件需核实' });
+    const result = await api.reviewCustomOffer('s1', { action, offer_id: 'offer-s1', comment: 'Delivery conditions need verification' });
     assert.equal(result.offer.review_action, action);
     assert.equal(result.has_pending_offer, false);
   }
@@ -170,7 +170,7 @@ test('custom offer change and reject reviews require reasons and carry no approv
     '/api/students/s1/offer-review', '/api/students/s1/offer-review',
   ]);
   assert.deepEqual(requests[0].body, { action: 'REQUEST_CHANGES', offer_id: 'offer-s1',
-    comment: '交付条件需核实', demo_only: true });
+    comment: 'Delivery conditions need verification', demo_only: true });
   assert.deepEqual(requests[1].body, { action: 'REJECT', offer_id: 'offer-s1',
-    comment: '交付条件需核实', demo_only: true });
+    comment: 'Delivery conditions need verification', demo_only: true });
 });
