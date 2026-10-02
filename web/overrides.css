@@ -1,0 +1,33 @@
+/* The demo IDs are exact source values; visual styling must not change their case. */
+.eyebrow { text-transform: none; }
+
+#offer-form { display: grid; gap: 12px; margin-top: 12px; }
+
+@media (max-width: 600px) {
+  .page-heading .button { max-width: none; white-space: nowrap; padding: 10px 11px; }
+}
+.approved-actions input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; margin: 0 8px 0 0; vertical-align: middle; }
+.approved-actions label:has(input[type="checkbox"]) { display: flex; align-items: center; line-height: 1.5; }
+.button:focus-visible { outline: 3px solid #78c9bf; outline-offset: 2px; }
+
+.offer-review-form { display: grid; gap: 12px; border-top: 1px solid var(--line); margin-top: 17px; padding-top: 17px; }
+.offer-review-form h3 { margin: 0; font-size: .92rem; }
+.offer-review-form textarea { width: 100%; max-width: 100%; }
+.offer-review-form .button-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.offer-review-form .button { min-width: 0; white-space: normal; }
+.danger-button { color: #822c2c; border-color: #e7a7a3; background: #fff8f7; }
+.reviewed-offer { border-color: #e7a7a3; }
+@media (max-width: 400px) { .offer-review-form .button-row { grid-template-columns: 1fr; } }
+
+.progress-source { border: 1px solid #c8dcd4; background: #f5faf7; border-radius: 11px; padding: 12px; margin-bottom: 15px; }
+.progress-source strong { font-size: .82rem; }
+.progress-source p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .88rem; margin: 7px 0; }
+.progress-source small { color: var(--muted); overflow-wrap: anywhere; }
+.progress-label-form { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 15px; margin: 15px 0; }
+.progress-label-form .button { width: 100%; }
+.progress-history { border-top: 1px solid var(--line); padding-top: 12px; }
+.progress-history summary { cursor: pointer; color: var(--teal-deep); font-weight: 700; min-height: 44px; }
+.progress-history ol { margin: 7px 0 0; padding-left: 22px; }
+.progress-history li { margin-bottom: 12px; overflow-wrap: anywhere; }
+.progress-history li p { margin: 4px 0; font-size: .84rem; }
+.progress-history li small { color: var(--muted); }

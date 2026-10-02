@@ -1,0 +1,5 @@
+[project]
+name = "study-abroad-sales-agent"
+version = "0.1.0"
+description = "Curated offline V2 sales-agent architecture with synthetic portfolio fixtures"
+requires-python = ">=3.10"

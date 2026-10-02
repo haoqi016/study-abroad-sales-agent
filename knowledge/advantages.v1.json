@@ -1,0 +1,191 @@
+{
+  "schema_version": "sales.advantages.v1",
+  "source_version": "portfolio-synthetic-advantages-v1",
+  "approved_by": "OWNER",
+  "approved_at": "2026-01-01T00:00:00Z",
+  "advantages": [
+    {
+      "advantage_id": "ADV-001",
+      "claim": "Synthetic demo capability 1; no real provider capability is asserted.",
+      "customer_benefit": "Demonstrates how a reviewed claim would be selected and cited.",
+      "applicable_when": [
+        "Only in the offline portfolio demonstration."
+      ],
+      "must_not_claim": [
+        "Do not present this fixture as a real service or outcome."
+      ],
+      "regions": [
+        "GLOBAL"
+      ],
+      "tags": [
+        "CASE_EVIDENCE",
+        "PERSONALIZATION"
+      ],
+      "approval_status": "APPROVED",
+      "approved_by": "OWNER",
+      "approved_at": "2026-01-01T00:00:00Z",
+      "version": "portfolio-synthetic-advantages-v1"
+    },
+    {
+      "advantage_id": "ADV-002",
+      "claim": "Synthetic demo capability 2; no real provider capability is asserted.",
+      "customer_benefit": "Demonstrates how a reviewed claim would be selected and cited.",
+      "applicable_when": [
+        "Only in the offline portfolio demonstration."
+      ],
+      "must_not_claim": [
+        "Do not present this fixture as a real service or outcome."
+      ],
+      "regions": [
+        "SG",
+        "HK",
+        "UK"
+      ],
+      "tags": [
+        "LOCAL_TEAM",
+        "LOCAL_INFORMATION"
+      ],
+      "approval_status": "APPROVED",
+      "approved_by": "OWNER",
+      "approved_at": "2026-01-01T00:00:00Z",
+      "version": "portfolio-synthetic-advantages-v1"
+    },
+    {
+      "advantage_id": "ADV-003",
+      "claim": "Synthetic demo capability 3; no real provider capability is asserted.",
+      "customer_benefit": "Demonstrates how a reviewed claim would be selected and cited.",
+      "applicable_when": [
+        "Only in the offline portfolio demonstration."
+      ],
+      "must_not_claim": [
+        "Do not present this fixture as a real service or outcome."
+      ],
+      "regions": [
+        "SG",
+        "HK",
+        "UK"
+      ],
+      "tags": [
+        "FIRST_HAND_CHECK",
+        "LOCAL_INFORMATION"
+      ],
+      "approval_status": "APPROVED",
+      "approved_by": "OWNER",
+      "approved_at": "2026-01-01T00:00:00Z",
+      "version": "portfolio-synthetic-advantages-v1"
+    },
+    {
+      "advantage_id": "ADV-004",
+      "claim": "Synthetic demo capability 4; no real provider capability is asserted.",
+      "customer_benefit": "Demonstrates how a reviewed claim would be selected and cited.",
+      "applicable_when": [
+        "Only in the offline portfolio demonstration."
+      ],
+      "must_not_claim": [
+        "Do not present this fixture as a real service or outcome."
+      ],
+      "regions": [
+        "GLOBAL"
+      ],
+      "tags": [
+        "PS",
+        "PERSONALIZATION"
+      ],
+      "approval_status": "APPROVED",
+      "approved_by": "OWNER",
+      "approved_at": "2026-01-01T00:00:00Z",
+      "version": "portfolio-synthetic-advantages-v1"
+    },
+    {
+      "advantage_id": "ADV-005",
+      "claim": "Synthetic demo capability 5; no real provider capability is asserted.",
+      "customer_benefit": "Demonstrates how a reviewed claim would be selected and cited.",
+      "applicable_when": [
+        "Only in the offline portfolio demonstration."
+      ],
+      "must_not_claim": [
+        "Do not present this fixture as a real service or outcome."
+      ],
+      "regions": [
+        "GLOBAL"
+      ],
+      "tags": [
+        "CV",
+        "PS",
+        "POSITIONING"
+      ],
+      "approval_status": "APPROVED",
+      "approved_by": "OWNER",
+      "approved_at": "2026-01-01T00:00:00Z",
+      "version": "portfolio-synthetic-advantages-v1"
+    },
+    {
+      "advantage_id": "ADV-006",
+      "claim": "Synthetic demo capability 6; no real provider capability is asserted.",
+      "customer_benefit": "Demonstrates how a reviewed claim would be selected and cited.",
+      "applicable_when": [
+        "Only in the offline portfolio demonstration."
+      ],
+      "must_not_claim": [
+        "Do not present this fixture as a real service or outcome."
+      ],
+      "regions": [
+        "SG",
+        "HK",
+        "UK"
+      ],
+      "tags": [
+        "HOUSING",
+        "LOCAL_SUPPORT"
+      ],
+      "approval_status": "APPROVED",
+      "approved_by": "OWNER",
+      "approved_at": "2026-01-01T00:00:00Z",
+      "version": "portfolio-synthetic-advantages-v1"
+    },
+    {
+      "advantage_id": "ADV-007",
+      "claim": "Synthetic demo capability 7; no real provider capability is asserted.",
+      "customer_benefit": "Demonstrates how a reviewed claim would be selected and cited.",
+      "applicable_when": [
+        "Only in the offline portfolio demonstration."
+      ],
+      "must_not_claim": [
+        "Do not present this fixture as a real service or outcome."
+      ],
+      "regions": [
+        "GLOBAL"
+      ],
+      "tags": [
+        "CASE_EVIDENCE",
+        "MATCHING"
+      ],
+      "approval_status": "APPROVED",
+      "approved_by": "OWNER",
+      "approved_at": "2026-01-01T00:00:00Z",
+      "version": "portfolio-synthetic-advantages-v1"
+    },
+    {
+      "advantage_id": "ADV-008",
+      "claim": "Synthetic demo capability 8; no real provider capability is asserted.",
+      "customer_benefit": "Demonstrates how a reviewed claim would be selected and cited.",
+      "applicable_when": [
+        "Only in the offline portfolio demonstration."
+      ],
+      "must_not_claim": [
+        "Do not present this fixture as a real service or outcome."
+      ],
+      "regions": [
+        "GLOBAL"
+      ],
+      "tags": [
+        "INTERNSHIP_INFORMATION",
+        "CAREER_SUPPORT"
+      ],
+      "approval_status": "APPROVED",
+      "approved_by": "OWNER",
+      "approved_at": "2026-01-01T00:00:00Z",
+      "version": "portfolio-synthetic-advantages-v1"
+    }
+  ]
+}
