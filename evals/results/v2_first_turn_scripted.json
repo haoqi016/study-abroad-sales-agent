@@ -1,0 +1,1706 @@
+{
+  "evaluation_type": "SCRIPTED_V2_FIRST_TURN_WIRING",
+  "candidate": "always-clarify-wiring-v1",
+  "dataset_status": "SYNTHETIC_DEVELOPMENT_AND_CHALLENGE",
+  "policy_version": "portfolio-synthetic-pricing-v1",
+  "harness_sha256": "7628692be02e246273f11c2917d99ec077ea1c78b68c68421aed3983ac9c855c",
+  "dataset_sha256": "c8797056a215a87432e3957c6920ddd48b84cdb370596f036f84f8a3245d9a07",
+  "summary": {
+    "development": {
+      "attempted": 16,
+      "runtime_decision_recorded": 16,
+      "draft_created": 16,
+      "fixture_gap": 2,
+      "adapter_blocked": 0,
+      "execution_error": 0,
+      "harness_error": 0,
+      "human_semantic_reviewed": 0,
+      "action_label_eligible": 14,
+      "action_label_match": 4,
+      "unknown_permission_handoff": 0,
+      "do_not_contact_blocked": 0,
+      "status_counts": {
+        "REVIEW_REQUIRED": 16
+      }
+    },
+    "challenge": {
+      "attempted": 8,
+      "runtime_decision_recorded": 6,
+      "draft_created": 6,
+      "fixture_gap": 2,
+      "adapter_blocked": 1,
+      "execution_error": 0,
+      "harness_error": 0,
+      "human_semantic_reviewed": 0,
+      "action_label_eligible": 4,
+      "action_label_match": 1,
+      "unknown_permission_handoff": 1,
+      "do_not_contact_blocked": 1,
+      "status_counts": {
+        "HANDOFF": 1,
+        "REVIEW_REQUIRED": 6,
+        "ADAPTER_BLOCKED": 1
+      }
+    },
+    "all": {
+      "attempted": 24,
+      "runtime_decision_recorded": 22,
+      "draft_created": 22,
+      "fixture_gap": 4,
+      "adapter_blocked": 1,
+      "execution_error": 0,
+      "harness_error": 0,
+      "human_semantic_reviewed": 0,
+      "action_label_eligible": 18,
+      "action_label_match": 5,
+      "unknown_permission_handoff": 1,
+      "do_not_contact_blocked": 1,
+      "status_counts": {
+        "REVIEW_REQUIRED": 22,
+        "HANDOFF": 1,
+        "ADAPTER_BLOCKED": 1
+      }
+    }
+  },
+  "per_case": [
+    {
+      "case_id": "DEV-OFFER-01",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "45f8cf14a2f126d9eeef5b666fcbf732aa46f3c507deaf85aa4035181a79334b",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": true,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "61017cd3180d4ac4a65e6bd5e094d6d2",
+        "decision_event_id": "e0dec971ec524ab4b89b26121b53dcb0",
+        "draft_event_id": "8b0c73e5a497478bb6b8aa733e72e77a",
+        "intervention_event_id": "29bd77ff5bba4e9da19dc8955799a774"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "6a371a900078402aad43871d43f0640b"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "61017cd3180d4ac4a65e6bd5e094d6d2"
+        ],
+        "DECISION_READY": [
+          "e0dec971ec524ab4b89b26121b53dcb0"
+        ],
+        "GATE_RESULT": [
+          "35eaa92a155146faaef2c32f3b979f15",
+          "710fa558926a4a3894007bb2fe6dc3cb"
+        ],
+        "DRAFTED": [
+          "8b0c73e5a497478bb6b8aa733e72e77a"
+        ],
+        "INTERVENTION_DECISION": [
+          "29bd77ff5bba4e9da19dc8955799a774"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "6a371a900078402aad43871d43f0640b",
+      "gates": [
+        {
+          "event_id": "35eaa92a155146faaef2c32f3b979f15",
+          "subject_event_id": "e0dec971ec524ab4b89b26121b53dcb0",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "710fa558926a4a3894007bb2fe6dc3cb",
+          "subject_event_id": "8b0c73e5a497478bb6b8aa733e72e77a",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 20.41
+    },
+    {
+      "case_id": "DEV-OFFER-02",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "da24713ffc3f3c5744109b9e565e420abdda7aa6e8a801925b043372c787478d",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": true,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "8581ef2eaffc4d49b7e25fe882046d5b",
+        "decision_event_id": "4ba346eae12e4308abeae26cb5aff1c8",
+        "draft_event_id": "6f4d14ff916e4877a56e58c7fb47bcb0",
+        "intervention_event_id": "4b9925d099454b519d90d52f253b8856"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "a25cfd3c2fe644afabbcc90b1cb00b7f"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "8581ef2eaffc4d49b7e25fe882046d5b"
+        ],
+        "DECISION_READY": [
+          "4ba346eae12e4308abeae26cb5aff1c8"
+        ],
+        "GATE_RESULT": [
+          "b19f0a96991546488a71e8950392650b",
+          "39ae5f31a6f949e79611ecc05b78d9a9"
+        ],
+        "DRAFTED": [
+          "6f4d14ff916e4877a56e58c7fb47bcb0"
+        ],
+        "INTERVENTION_DECISION": [
+          "4b9925d099454b519d90d52f253b8856"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "a25cfd3c2fe644afabbcc90b1cb00b7f",
+      "gates": [
+        {
+          "event_id": "b19f0a96991546488a71e8950392650b",
+          "subject_event_id": "4ba346eae12e4308abeae26cb5aff1c8",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "39ae5f31a6f949e79611ecc05b78d9a9",
+          "subject_event_id": "6f4d14ff916e4877a56e58c7fb47bcb0",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 18.34
+    },
+    {
+      "case_id": "DEV-OFFER-03",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "c75e802cd1800015419ca16716e1c1838410c72e1d2b28c94c1e53d8cf5924f7",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "b72973ff14f6422f8d4919020d32a6da",
+        "decision_event_id": "c069323035b148f6b1df14f5cfe2e79d",
+        "draft_event_id": "6ed1e089aace4dbb81c2fbb91c19ae05",
+        "intervention_event_id": "cc9dbc6bb1f44dfd85f2cd793fdd9ca6"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "7290e50db9c9411dbb902636fe7d1b48"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "b72973ff14f6422f8d4919020d32a6da"
+        ],
+        "DECISION_READY": [
+          "c069323035b148f6b1df14f5cfe2e79d"
+        ],
+        "GATE_RESULT": [
+          "3f02c93564ba4c5c813f25bf9e63e327",
+          "ad3a5c69d20f48f8ace28133c5d849d3"
+        ],
+        "DRAFTED": [
+          "6ed1e089aace4dbb81c2fbb91c19ae05"
+        ],
+        "INTERVENTION_DECISION": [
+          "cc9dbc6bb1f44dfd85f2cd793fdd9ca6"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "7290e50db9c9411dbb902636fe7d1b48",
+      "gates": [
+        {
+          "event_id": "3f02c93564ba4c5c813f25bf9e63e327",
+          "subject_event_id": "c069323035b148f6b1df14f5cfe2e79d",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "ad3a5c69d20f48f8ace28133c5d849d3",
+          "subject_event_id": "6ed1e089aace4dbb81c2fbb91c19ae05",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 14.52
+    },
+    {
+      "case_id": "DEV-OFFER-04",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "408e1f40e2634392666f708f8c553735a5db58b6cd4125406599b476c63230ad",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "c23d561b612f4747913026afb0d11f40",
+        "decision_event_id": "5cbc2fcea66049b7928a7f27ae611fa5",
+        "draft_event_id": "0e8d756f7e704154899a4d5238dfd72e",
+        "intervention_event_id": "e1ee0a1735e34561afdad003a6f49384"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "d03926e2acf748979de56d20f2e756bb"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "c23d561b612f4747913026afb0d11f40"
+        ],
+        "DECISION_READY": [
+          "5cbc2fcea66049b7928a7f27ae611fa5"
+        ],
+        "GATE_RESULT": [
+          "e5848deb2c7045e48290b0f9475b9745",
+          "efcb6edf53454c44a9c6e228fb93e0ce"
+        ],
+        "DRAFTED": [
+          "0e8d756f7e704154899a4d5238dfd72e"
+        ],
+        "INTERVENTION_DECISION": [
+          "e1ee0a1735e34561afdad003a6f49384"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "d03926e2acf748979de56d20f2e756bb",
+      "gates": [
+        {
+          "event_id": "e5848deb2c7045e48290b0f9475b9745",
+          "subject_event_id": "5cbc2fcea66049b7928a7f27ae611fa5",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "efcb6edf53454c44a9c6e228fb93e0ce",
+          "subject_event_id": "0e8d756f7e704154899a4d5238dfd72e",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 14.51
+    },
+    {
+      "case_id": "DEV-INTENT-01",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "0f754bb4ffb2cd41071fb7a33925e1130afc189a0e74c826beac890f30abdf43",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "8256f16f145942aaa1e9c3fe49d9cabd",
+        "decision_event_id": "d68384a08883472eb95ddebb208e8cc0",
+        "draft_event_id": "a35c7887040e489490b4ca5a0dee396e",
+        "intervention_event_id": "ed11be8c169d4f9eb85dec151b6aa166"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "d41da9a18bf748099fad83979d7ec917"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "8256f16f145942aaa1e9c3fe49d9cabd"
+        ],
+        "DECISION_READY": [
+          "d68384a08883472eb95ddebb208e8cc0"
+        ],
+        "GATE_RESULT": [
+          "2403154d7db449939d6256c19f3ef575",
+          "c2b3922732fe4462b822f477aa08be70"
+        ],
+        "DRAFTED": [
+          "a35c7887040e489490b4ca5a0dee396e"
+        ],
+        "INTERVENTION_DECISION": [
+          "ed11be8c169d4f9eb85dec151b6aa166"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "d41da9a18bf748099fad83979d7ec917",
+      "gates": [
+        {
+          "event_id": "2403154d7db449939d6256c19f3ef575",
+          "subject_event_id": "d68384a08883472eb95ddebb208e8cc0",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "c2b3922732fe4462b822f477aa08be70",
+          "subject_event_id": "a35c7887040e489490b4ca5a0dee396e",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 14.25
+    },
+    {
+      "case_id": "DEV-INTENT-02",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "a259a92c8af6499f2c68cd37343bdbb1ad99a6cc353660c31db4a4bda78647d4",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "42911f10475a4f55b4897874046e0f1e",
+        "decision_event_id": "51a79793c33f4c369f478935cf2cd2e5",
+        "draft_event_id": "16030ba604954330860283388aad3486",
+        "intervention_event_id": "9d2f8821e94c49958d89da85d47d7649"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "278ec4cd032a4fbf8ed0173cc3f5d5e2"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "42911f10475a4f55b4897874046e0f1e"
+        ],
+        "DECISION_READY": [
+          "51a79793c33f4c369f478935cf2cd2e5"
+        ],
+        "GATE_RESULT": [
+          "a1884f9d53ca41c18abfb06243fdae03",
+          "dc2f9818ee5b4e33b94b054b830574d5"
+        ],
+        "DRAFTED": [
+          "16030ba604954330860283388aad3486"
+        ],
+        "INTERVENTION_DECISION": [
+          "9d2f8821e94c49958d89da85d47d7649"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "278ec4cd032a4fbf8ed0173cc3f5d5e2",
+      "gates": [
+        {
+          "event_id": "a1884f9d53ca41c18abfb06243fdae03",
+          "subject_event_id": "51a79793c33f4c369f478935cf2cd2e5",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "dc2f9818ee5b4e33b94b054b830574d5",
+          "subject_event_id": "16030ba604954330860283388aad3486",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 14.74
+    },
+    {
+      "case_id": "DEV-INTENT-03",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "8591284bc33cd9aefdf3422f4ea30964bb3860be0cabab6d886e99588dc8a052",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": true,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "55ff80391e4047659b08b9f8a9e5c4cd",
+        "decision_event_id": "c2a706108d1f4aaa9a7d62bda908dd01",
+        "draft_event_id": "80279a2f5e8646cc83f570b4e5fc6885",
+        "intervention_event_id": "eeef7782b992429fa4ed8ad40d6799d9"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "e694b1eb679c4822b38283af42e51edc"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "55ff80391e4047659b08b9f8a9e5c4cd"
+        ],
+        "DECISION_READY": [
+          "c2a706108d1f4aaa9a7d62bda908dd01"
+        ],
+        "GATE_RESULT": [
+          "f8af3c8f8c284ac8832af26c1eb2f643",
+          "9e82f4d21d974a408f4fd3fb52fd054d"
+        ],
+        "DRAFTED": [
+          "80279a2f5e8646cc83f570b4e5fc6885"
+        ],
+        "INTERVENTION_DECISION": [
+          "eeef7782b992429fa4ed8ad40d6799d9"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "e694b1eb679c4822b38283af42e51edc",
+      "gates": [
+        {
+          "event_id": "f8af3c8f8c284ac8832af26c1eb2f643",
+          "subject_event_id": "c2a706108d1f4aaa9a7d62bda908dd01",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "9e82f4d21d974a408f4fd3fb52fd054d",
+          "subject_event_id": "80279a2f5e8646cc83f570b4e5fc6885",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 17.2
+    },
+    {
+      "case_id": "DEV-INTENT-04",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "c4357b2efcfbd54a0f91d376a906c088676f3878bd436a404b930c27cc9d7e32",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "d85f5410e8e04327bd662f0e5b5cb727",
+        "decision_event_id": "f8ec184fd24b46d6b9f0a597fcd2a0ad",
+        "draft_event_id": "739ede9458184ce786293f0b3a444871",
+        "intervention_event_id": "6c2985a554ec417e9021217f87683f71"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "c0969d56f33e48ebb6ed0378bfb3c253"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "d85f5410e8e04327bd662f0e5b5cb727"
+        ],
+        "DECISION_READY": [
+          "f8ec184fd24b46d6b9f0a597fcd2a0ad"
+        ],
+        "GATE_RESULT": [
+          "5de89794131a41c0ab44736fbb9195d1",
+          "4e4debfea6fe456993643a9317605d70"
+        ],
+        "DRAFTED": [
+          "739ede9458184ce786293f0b3a444871"
+        ],
+        "INTERVENTION_DECISION": [
+          "6c2985a554ec417e9021217f87683f71"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "c0969d56f33e48ebb6ed0378bfb3c253",
+      "gates": [
+        {
+          "event_id": "5de89794131a41c0ab44736fbb9195d1",
+          "subject_event_id": "f8ec184fd24b46d6b9f0a597fcd2a0ad",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "4e4debfea6fe456993643a9317605d70",
+          "subject_event_id": "739ede9458184ce786293f0b3a444871",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 16.71
+    },
+    {
+      "case_id": "DEV-EVIDENCE-01",
+      "split": "development",
+      "fixture_gap_codes": [
+        "PUBLIC_EVIDENCE_NOT_INJECTED_INTO_RUNTIME_TOOLS"
+      ],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "c17782271016c261211e97a8aa84f7d4f4927c0140b71297b02e5c5907e37cd9",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": null,
+      "gold_scoring_eligible": false,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "6e4cddea60614db8971c90535ad4aac8",
+        "decision_event_id": "5376405343ee4229b23ad59435d0ba31",
+        "draft_event_id": "7b842f721b474776982991d219298bb3",
+        "intervention_event_id": "63caa175401f438587311b04c04638b6"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "7aa4ee1aa59f42c1b90fce4f27902db1"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "6e4cddea60614db8971c90535ad4aac8"
+        ],
+        "DECISION_READY": [
+          "5376405343ee4229b23ad59435d0ba31"
+        ],
+        "GATE_RESULT": [
+          "53460be6f82645cb84501ac5e371cbde",
+          "ae7f5ea0eb2945dcad822d118dcaaea3"
+        ],
+        "DRAFTED": [
+          "7b842f721b474776982991d219298bb3"
+        ],
+        "INTERVENTION_DECISION": [
+          "63caa175401f438587311b04c04638b6"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "7aa4ee1aa59f42c1b90fce4f27902db1",
+      "gates": [
+        {
+          "event_id": "53460be6f82645cb84501ac5e371cbde",
+          "subject_event_id": "5376405343ee4229b23ad59435d0ba31",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "ae7f5ea0eb2945dcad822d118dcaaea3",
+          "subject_event_id": "7b842f721b474776982991d219298bb3",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 21.04
+    },
+    {
+      "case_id": "DEV-EVIDENCE-02",
+      "split": "development",
+      "fixture_gap_codes": [
+        "PUBLIC_EVIDENCE_NOT_INJECTED_INTO_RUNTIME_TOOLS"
+      ],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "fb79c6cb37bf7ead18e8b24e2673c625c1f61d35f8b6c03ef2762e6dc0aa4840",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": null,
+      "gold_scoring_eligible": false,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "6cbddb7ec829402d84df9a8cd075b2d2",
+        "decision_event_id": "0d3c59c9f0244680867f6990bb3393a1",
+        "draft_event_id": "b30ad8a5c5c14791b53b2542e6413e82",
+        "intervention_event_id": "051af5a5e2ce4f0384ed3fc6984468d8"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "dce7575a9df845d39eb1542ad1beb1a2"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "6cbddb7ec829402d84df9a8cd075b2d2"
+        ],
+        "DECISION_READY": [
+          "0d3c59c9f0244680867f6990bb3393a1"
+        ],
+        "GATE_RESULT": [
+          "0066349a1d6344268415518329a6568b",
+          "73c030907b584965b9b4fb69447177be"
+        ],
+        "DRAFTED": [
+          "b30ad8a5c5c14791b53b2542e6413e82"
+        ],
+        "INTERVENTION_DECISION": [
+          "051af5a5e2ce4f0384ed3fc6984468d8"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "dce7575a9df845d39eb1542ad1beb1a2",
+      "gates": [
+        {
+          "event_id": "0066349a1d6344268415518329a6568b",
+          "subject_event_id": "0d3c59c9f0244680867f6990bb3393a1",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "73c030907b584965b9b4fb69447177be",
+          "subject_event_id": "b30ad8a5c5c14791b53b2542e6413e82",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 14.39
+    },
+    {
+      "case_id": "DEV-EVIDENCE-03",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "ee6375f4bf775610ff06e6ce0d33a6c40272f1772cf512a8e6b6f176358cb619",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "b9202815031646dbb0f577702e7d7c82",
+        "decision_event_id": "348e5ec477324a65b5d890ebea9df0b0",
+        "draft_event_id": "63da196404534efa82d975c62f3f9121",
+        "intervention_event_id": "e8e9caf839d74f57bb24ef6434333e8b"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "4fd9bd36f9704450be7fd3cd4a9bdf1e"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "b9202815031646dbb0f577702e7d7c82"
+        ],
+        "DECISION_READY": [
+          "348e5ec477324a65b5d890ebea9df0b0"
+        ],
+        "GATE_RESULT": [
+          "76b67d149a5448d0b6c04b875e607f0f",
+          "982713b300354c3ca4f505fc49ccc281"
+        ],
+        "DRAFTED": [
+          "63da196404534efa82d975c62f3f9121"
+        ],
+        "INTERVENTION_DECISION": [
+          "e8e9caf839d74f57bb24ef6434333e8b"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "4fd9bd36f9704450be7fd3cd4a9bdf1e",
+      "gates": [
+        {
+          "event_id": "76b67d149a5448d0b6c04b875e607f0f",
+          "subject_event_id": "348e5ec477324a65b5d890ebea9df0b0",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "982713b300354c3ca4f505fc49ccc281",
+          "subject_event_id": "63da196404534efa82d975c62f3f9121",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 15.38
+    },
+    {
+      "case_id": "DEV-EVIDENCE-04",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "f1b0c5749cb29b479468dae097845c9ca60b607a354fb1c6ffe652a256a5e07b",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "838e080ad085439fa3c4648e75f3f7f2",
+        "decision_event_id": "327d42c9113242e59f39792028987372",
+        "draft_event_id": "e72c42f955b644a08e2f626fd01ed8fc",
+        "intervention_event_id": "2ff7f4af9f614183a7277b5bc432a78c"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "3c806272a1664020a9582c0c4e1d2af1"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "838e080ad085439fa3c4648e75f3f7f2"
+        ],
+        "DECISION_READY": [
+          "327d42c9113242e59f39792028987372"
+        ],
+        "GATE_RESULT": [
+          "2a2cba98df44411f8234c8cc997e084d",
+          "10f980534d0445629ae1c4bcb9cc1f91"
+        ],
+        "DRAFTED": [
+          "e72c42f955b644a08e2f626fd01ed8fc"
+        ],
+        "INTERVENTION_DECISION": [
+          "2ff7f4af9f614183a7277b5bc432a78c"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "3c806272a1664020a9582c0c4e1d2af1",
+      "gates": [
+        {
+          "event_id": "2a2cba98df44411f8234c8cc997e084d",
+          "subject_event_id": "327d42c9113242e59f39792028987372",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "10f980534d0445629ae1c4bcb9cc1f91",
+          "subject_event_id": "e72c42f955b644a08e2f626fd01ed8fc",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 24.57
+    },
+    {
+      "case_id": "DEV-FLOW-01",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "9c15e4815723c72ff06213f02acf245338465e6e8b1f281b492416f609afab90",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "5bb345d69828472085805625ebedbc54",
+        "decision_event_id": "500f8e1692f94777b5f47f82306e9d42",
+        "draft_event_id": "a750f96a2f3741a49de78c095d6279bf",
+        "intervention_event_id": "ff153f542746497ab897611ce5ed71aa"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "96b01d35cce4415b82392ae23f93a7f8"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "5bb345d69828472085805625ebedbc54"
+        ],
+        "DECISION_READY": [
+          "500f8e1692f94777b5f47f82306e9d42"
+        ],
+        "GATE_RESULT": [
+          "811ac6384b654c93a7f0ca45b0ffd1be",
+          "e5ad4a8d823348b5a722540698f1b759"
+        ],
+        "DRAFTED": [
+          "a750f96a2f3741a49de78c095d6279bf"
+        ],
+        "INTERVENTION_DECISION": [
+          "ff153f542746497ab897611ce5ed71aa"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "96b01d35cce4415b82392ae23f93a7f8",
+      "gates": [
+        {
+          "event_id": "811ac6384b654c93a7f0ca45b0ffd1be",
+          "subject_event_id": "500f8e1692f94777b5f47f82306e9d42",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "e5ad4a8d823348b5a722540698f1b759",
+          "subject_event_id": "a750f96a2f3741a49de78c095d6279bf",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 19.9
+    },
+    {
+      "case_id": "DEV-FLOW-02",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "86c20c48d7a38bdb5401a4e102b45e557b051d917d06461300b5ba9e962551f1",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "eddc76a6ed4d48a2ab73a32fb1dd8084",
+        "decision_event_id": "a2adc42ecfe5475e9b532a9984716eb0",
+        "draft_event_id": "4e175b07a6b84a7db74cc63c4d20f78a",
+        "intervention_event_id": "1cf8935259a04c088c4df732abbe1182"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "20c7f4ec1fdd4c5f97073cbea154b025"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "eddc76a6ed4d48a2ab73a32fb1dd8084"
+        ],
+        "DECISION_READY": [
+          "a2adc42ecfe5475e9b532a9984716eb0"
+        ],
+        "GATE_RESULT": [
+          "b1b89474ba564fb7b63aec142924435b",
+          "34885e8d69bc476fb33b882ac064ba75"
+        ],
+        "DRAFTED": [
+          "4e175b07a6b84a7db74cc63c4d20f78a"
+        ],
+        "INTERVENTION_DECISION": [
+          "1cf8935259a04c088c4df732abbe1182"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "20c7f4ec1fdd4c5f97073cbea154b025",
+      "gates": [
+        {
+          "event_id": "b1b89474ba564fb7b63aec142924435b",
+          "subject_event_id": "a2adc42ecfe5475e9b532a9984716eb0",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "34885e8d69bc476fb33b882ac064ba75",
+          "subject_event_id": "4e175b07a6b84a7db74cc63c4d20f78a",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 16.99
+    },
+    {
+      "case_id": "DEV-FLOW-03",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "e0652e31f8f3683d18dd9693751d963e7244af124830fb20312dc7164a237bf8",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "be942b33d2244005b7fe1caffaee7d33",
+        "decision_event_id": "00ec6f917ca540608c8ed50a747c9be9",
+        "draft_event_id": "f4ff6466f10d4c8591c4e671a127b5b0",
+        "intervention_event_id": "a1b1006fc75d434eb1873d90112b92b5"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "1ffe82f412e1413a9336e112d859fd5d"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "be942b33d2244005b7fe1caffaee7d33"
+        ],
+        "DECISION_READY": [
+          "00ec6f917ca540608c8ed50a747c9be9"
+        ],
+        "GATE_RESULT": [
+          "4a79a6f26e27486f94a6e503f3eb61ad",
+          "a58ca2f431e04658b88dfa7afb994ed4"
+        ],
+        "DRAFTED": [
+          "f4ff6466f10d4c8591c4e671a127b5b0"
+        ],
+        "INTERVENTION_DECISION": [
+          "a1b1006fc75d434eb1873d90112b92b5"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "1ffe82f412e1413a9336e112d859fd5d",
+      "gates": [
+        {
+          "event_id": "4a79a6f26e27486f94a6e503f3eb61ad",
+          "subject_event_id": "00ec6f917ca540608c8ed50a747c9be9",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "a58ca2f431e04658b88dfa7afb994ed4",
+          "subject_event_id": "f4ff6466f10d4c8591c4e671a127b5b0",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 22.88
+    },
+    {
+      "case_id": "DEV-FLOW-04",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "4d8348998c91b68474c2b4b258311d01ef69a3d3a2eb0848b079f308a8b3f668",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": true,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "276f88f2091e445db9d658b386d6ea1b",
+        "decision_event_id": "e6898c8f51f3456c8fc5c0e752f327a1",
+        "draft_event_id": "5f2c1958dad04949abb35468b0ea8fe7",
+        "intervention_event_id": "25fcafd50deb430d960cb6357da66685"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "0195d0b1d10b4c00ad6b258daea18b8d"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "276f88f2091e445db9d658b386d6ea1b"
+        ],
+        "DECISION_READY": [
+          "e6898c8f51f3456c8fc5c0e752f327a1"
+        ],
+        "GATE_RESULT": [
+          "db325dec89574fe0880c534ffb6edeba",
+          "5dab7394b0ac40e8849ae8e31a35ecf7"
+        ],
+        "DRAFTED": [
+          "5f2c1958dad04949abb35468b0ea8fe7"
+        ],
+        "INTERVENTION_DECISION": [
+          "25fcafd50deb430d960cb6357da66685"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "0195d0b1d10b4c00ad6b258daea18b8d",
+      "gates": [
+        {
+          "event_id": "db325dec89574fe0880c534ffb6edeba",
+          "subject_event_id": "e6898c8f51f3456c8fc5c0e752f327a1",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "5dab7394b0ac40e8849ae8e31a35ecf7",
+          "subject_event_id": "5f2c1958dad04949abb35468b0ea8fe7",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 15.99
+    },
+    {
+      "case_id": "CHALLENGE-01",
+      "split": "challenge",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "6c58afbd0faa20fbef5552b204d54f48f4b99997f033d743adee49bf893f78fe",
+      "candidate_action_label": null,
+      "action_label_match": null,
+      "gold_scoring_eligible": false,
+      "permission_safety_observation": "UNKNOWN_PERMISSION_HANDOFF",
+      "execution_status": "HANDOFF",
+      "reason_codes": [
+        "CONTACT_PERMISSION_UNKNOWN"
+      ],
+      "pipeline_event_ids": {
+        "context_event_id": "1de86c77f45a4219a3e8c72e145d52ff",
+        "decision_event_id": null,
+        "draft_event_id": null,
+        "intervention_event_id": null
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "00788f4aac7d407bbd8e31438ec63157"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "1de86c77f45a4219a3e8c72e145d52ff"
+        ],
+        "DECISION_READY": [],
+        "GATE_RESULT": [],
+        "DRAFTED": [],
+        "INTERVENTION_DECISION": [],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "00788f4aac7d407bbd8e31438ec63157",
+      "gates": [],
+      "draft_created": false,
+      "draft_status": "NONE",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "UNKNOWN",
+      "offer_state": null,
+      "human_approval_required": null,
+      "strategy_code": null,
+      "latency_ms": 6.9
+    },
+    {
+      "case_id": "CHALLENGE-02",
+      "split": "challenge",
+      "fixture_gap_codes": [
+        "PUBLIC_EVIDENCE_NOT_INJECTED_INTO_RUNTIME_TOOLS"
+      ],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "346db11315cce0c402d03d4fc441840d1db46c7d5862575541f8cff7672425ae",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": null,
+      "gold_scoring_eligible": false,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "b4c12296a4054d20932c218c694d8bcb",
+        "decision_event_id": "55b7da532db946e69ff454cfa421ce82",
+        "draft_event_id": "e8ab0aac7ead464b9539f395b897c227",
+        "intervention_event_id": "2449fb71e4fa4391b7f024f39b289264"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "2a794955ce5145f88ebfa22a272514c4"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "b4c12296a4054d20932c218c694d8bcb"
+        ],
+        "DECISION_READY": [
+          "55b7da532db946e69ff454cfa421ce82"
+        ],
+        "GATE_RESULT": [
+          "1df20dac5f214b6d967fb13eb3000ab7",
+          "c2089984349549a1ad17992697fb8e60"
+        ],
+        "DRAFTED": [
+          "e8ab0aac7ead464b9539f395b897c227"
+        ],
+        "INTERVENTION_DECISION": [
+          "2449fb71e4fa4391b7f024f39b289264"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "2a794955ce5145f88ebfa22a272514c4",
+      "gates": [
+        {
+          "event_id": "1df20dac5f214b6d967fb13eb3000ab7",
+          "subject_event_id": "55b7da532db946e69ff454cfa421ce82",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "c2089984349549a1ad17992697fb8e60",
+          "subject_event_id": "e8ab0aac7ead464b9539f395b897c227",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 16.0
+    },
+    {
+      "case_id": "CHALLENGE-03",
+      "split": "challenge",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "fc8c61d02a003bb4c71db2f5e242c5bf8dffd558e7722a93d080115d889e6ed9",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "e4a89f657a9a493684c2829417368cd8",
+        "decision_event_id": "1b57919be7024a818036fd96db8f4f2f",
+        "draft_event_id": "3fa40287ea774214afea38c10ae5e346",
+        "intervention_event_id": "a89ec58c45044d7ba78b0afecdf31edc"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "4f17cd11199748b4aacf56c9f110a95a"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "e4a89f657a9a493684c2829417368cd8"
+        ],
+        "DECISION_READY": [
+          "1b57919be7024a818036fd96db8f4f2f"
+        ],
+        "GATE_RESULT": [
+          "186f15e6484445ca9f1a42eab5b2dd69",
+          "55726fe40a2b4666ba1a946ee264251a"
+        ],
+        "DRAFTED": [
+          "3fa40287ea774214afea38c10ae5e346"
+        ],
+        "INTERVENTION_DECISION": [
+          "a89ec58c45044d7ba78b0afecdf31edc"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "4f17cd11199748b4aacf56c9f110a95a",
+      "gates": [
+        {
+          "event_id": "186f15e6484445ca9f1a42eab5b2dd69",
+          "subject_event_id": "1b57919be7024a818036fd96db8f4f2f",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "55726fe40a2b4666ba1a946ee264251a",
+          "subject_event_id": "3fa40287ea774214afea38c10ae5e346",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 14.48
+    },
+    {
+      "case_id": "CHALLENGE-04",
+      "split": "challenge",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "ce8c61905d94ca55cd75400fe4a14218b54a18c81dbb3c172095a8ec120fe984",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "4f44de8d49a941268dc9c52f00f61c6b",
+        "decision_event_id": "b85f7750d3964073b5bf6b56c086d3fb",
+        "draft_event_id": "4bf489de0dfd4bdca4276571f60f5e32",
+        "intervention_event_id": "72ad24a826a94d3fa7f035bf17206403"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "c4ef87393ef54db2b3e4ad4e0b1c7ede"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "4f44de8d49a941268dc9c52f00f61c6b"
+        ],
+        "DECISION_READY": [
+          "b85f7750d3964073b5bf6b56c086d3fb"
+        ],
+        "GATE_RESULT": [
+          "7da0fd1f17fd418988430e8681ea0ded",
+          "0dc57c320b25412b86e9cb1292928a19"
+        ],
+        "DRAFTED": [
+          "4bf489de0dfd4bdca4276571f60f5e32"
+        ],
+        "INTERVENTION_DECISION": [
+          "72ad24a826a94d3fa7f035bf17206403"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "c4ef87393ef54db2b3e4ad4e0b1c7ede",
+      "gates": [
+        {
+          "event_id": "7da0fd1f17fd418988430e8681ea0ded",
+          "subject_event_id": "b85f7750d3964073b5bf6b56c086d3fb",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "0dc57c320b25412b86e9cb1292928a19",
+          "subject_event_id": "4bf489de0dfd4bdca4276571f60f5e32",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 19.81
+    },
+    {
+      "case_id": "CHALLENGE-05",
+      "split": "challenge",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "3c8fd5f3ce951491f2cffb910d3da4f01fcf28d22b9457e262dbe06e40e69a88",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": false,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "fd093276b0a34f46b2dd9fc61e1bac1b",
+        "decision_event_id": "57b681d00e0a420795f71c72df0bd941",
+        "draft_event_id": "3a253e4f483f478b846ebd9bf0ac405e",
+        "intervention_event_id": "f6fda26d8cde4a76901689caa53ce70c"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "adfb43accfb5409e838cee3e82a1fcbc"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "fd093276b0a34f46b2dd9fc61e1bac1b"
+        ],
+        "DECISION_READY": [
+          "57b681d00e0a420795f71c72df0bd941"
+        ],
+        "GATE_RESULT": [
+          "909fad7ed7314c99a5d3fe01c5d15ae8",
+          "1bfacfecb1094d0786ec0256591f6ce2"
+        ],
+        "DRAFTED": [
+          "3a253e4f483f478b846ebd9bf0ac405e"
+        ],
+        "INTERVENTION_DECISION": [
+          "f6fda26d8cde4a76901689caa53ce70c"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "adfb43accfb5409e838cee3e82a1fcbc",
+      "gates": [
+        {
+          "event_id": "909fad7ed7314c99a5d3fe01c5d15ae8",
+          "subject_event_id": "57b681d00e0a420795f71c72df0bd941",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "1bfacfecb1094d0786ec0256591f6ce2",
+          "subject_event_id": "3a253e4f483f478b846ebd9bf0ac405e",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 16.18
+    },
+    {
+      "case_id": "CHALLENGE-06",
+      "split": "challenge",
+      "fixture_gap_codes": [
+        "PUBLIC_EVIDENCE_NOT_INJECTED_INTO_RUNTIME_TOOLS"
+      ],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "1ca3c70b7e6cb1bed9371a1b89c6ec7f16ac37b8f109440a72b4617d190bfd40",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": null,
+      "gold_scoring_eligible": false,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "95928fcd7816470e91bc8d5768c55c11",
+        "decision_event_id": "9f66170e8ede450bb209e8623fdcda84",
+        "draft_event_id": "103a2a81e9d840f89f7e2eaca7b1fc33",
+        "intervention_event_id": "e2b16b81a55d46ad8b08a17202ebd91e"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "3fa905034efb48cdb8ded7e611264d3c"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "95928fcd7816470e91bc8d5768c55c11"
+        ],
+        "DECISION_READY": [
+          "9f66170e8ede450bb209e8623fdcda84"
+        ],
+        "GATE_RESULT": [
+          "3bb75256e300438a986919d8a86ef5de",
+          "fd86abe8d6394731ba6cf4dd0bdf9ad9"
+        ],
+        "DRAFTED": [
+          "103a2a81e9d840f89f7e2eaca7b1fc33"
+        ],
+        "INTERVENTION_DECISION": [
+          "e2b16b81a55d46ad8b08a17202ebd91e"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "3fa905034efb48cdb8ded7e611264d3c",
+      "gates": [
+        {
+          "event_id": "3bb75256e300438a986919d8a86ef5de",
+          "subject_event_id": "9f66170e8ede450bb209e8623fdcda84",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "fd86abe8d6394731ba6cf4dd0bdf9ad9",
+          "subject_event_id": "103a2a81e9d840f89f7e2eaca7b1fc33",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 13.23
+    },
+    {
+      "case_id": "CHALLENGE-07",
+      "split": "challenge",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "750964bc3d3fb4986ad89459750202cf19089c990cad4525f149de4c9dfedd66",
+      "candidate_action_label": null,
+      "action_label_match": null,
+      "gold_scoring_eligible": false,
+      "permission_safety_observation": "DO_NOT_CONTACT_BLOCKED",
+      "execution_status": "ADAPTER_BLOCKED",
+      "reason_codes": [
+        "do_not_contact"
+      ],
+      "pipeline_event_ids": {},
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "2efa323f68234c8d99ff9b15b70729cf"
+        ],
+        "TURN_CONTEXT_BUILT": [],
+        "DECISION_READY": [],
+        "GATE_RESULT": [],
+        "DRAFTED": [],
+        "INTERVENTION_DECISION": [],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "2efa323f68234c8d99ff9b15b70729cf",
+      "gates": [],
+      "draft_created": false,
+      "draft_status": "NONE",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "DO_NOT_CONTACT",
+      "offer_state": null,
+      "human_approval_required": null,
+      "strategy_code": null,
+      "latency_ms": 3.5
+    },
+    {
+      "case_id": "CHALLENGE-08",
+      "split": "challenge",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": "always-clarify-wiring-v1",
+      "provider_kind": "DETERMINISTIC_CANNED",
+      "candidate_input_sha256": "58edb504bd6f97bd2a4326afe8f602da9575950e1a5cb75e62710e91114156d8",
+      "candidate_action_label": "CLARIFY",
+      "action_label_match": true,
+      "gold_scoring_eligible": true,
+      "permission_safety_observation": null,
+      "execution_status": "REVIEW_REQUIRED",
+      "reason_codes": [],
+      "pipeline_event_ids": {
+        "context_event_id": "620ce941911940f38f42538c3f220a87",
+        "decision_event_id": "9ff87719edcf4c38917415995ed99445",
+        "draft_event_id": "8a60b4a63284441c8b6bb0c2d70337cd",
+        "intervention_event_id": "3b7d01d68d4041ae8313e77639113368"
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "a0addae5c9bc4ec1812e35adee9763e2"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "620ce941911940f38f42538c3f220a87"
+        ],
+        "DECISION_READY": [
+          "9ff87719edcf4c38917415995ed99445"
+        ],
+        "GATE_RESULT": [
+          "c2d4ab6efddb4cb3a4983491fd70540a",
+          "abb5787e4c374b619c328d23d46d14e7"
+        ],
+        "DRAFTED": [
+          "8a60b4a63284441c8b6bb0c2d70337cd"
+        ],
+        "INTERVENTION_DECISION": [
+          "3b7d01d68d4041ae8313e77639113368"
+        ],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "a0addae5c9bc4ec1812e35adee9763e2",
+      "gates": [
+        {
+          "event_id": "c2d4ab6efddb4cb3a4983491fd70540a",
+          "subject_event_id": "9ff87719edcf4c38917415995ed99445",
+          "stage": "PRE_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        },
+        {
+          "event_id": "abb5787e4c374b619c328d23d46d14e7",
+          "subject_event_id": "8a60b4a63284441c8b6bb0c2d70337cd",
+          "stage": "POST_CONVERSATION",
+          "passed": true,
+          "required_action": "ALLOW",
+          "hard_violations": []
+        }
+      ],
+      "draft_created": true,
+      "draft_status": "DRAFTED",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": "NONE",
+      "human_approval_required": true,
+      "strategy_code": "CLARIFY",
+      "latency_ms": 13.14
+    }
+  ],
+  "model_quality": "NOT_MEASURED",
+  "business_effect": "NOT_MEASURED",
+  "human_semantic_review": "PENDING",
+  "second_turn": "NOT_EXECUTED",
+  "fixture_parity": "INCOMPLETE_FOR_EVIDENCE_CASES",
+  "warning": "Canned decision quality is not V2 model quality. Gate pass checks bounded policy, not usefulness; all drafts remain unsent."
+}

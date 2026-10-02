@@ -1,0 +1,123 @@
+{
+  "evaluation_type": "TWO_CASE_LOCAL_MODEL_DIAGNOSTIC",
+  "model": "qwen3.5:9b",
+  "model_digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+  "prompt_version": "v2-pipeline-system-prompts.local-ollama.v5.10-product-claims",
+  "timeout_seconds_per_provider_call": 90.0,
+  "provider_retry_policy": "No harness retry; pipeline tool retry behavior unchanged",
+  "pricing_policy_version": "portfolio-synthetic-pricing-v1",
+  "dataset_sha256": "5beff3b7e2cc4abf3c534dc0d7821a5638ad29953623a5b053374a1bf4d71c44",
+  "runtime_harness_sha256": "e720bd2a195c5d9a027491eec698cb0476711fa881ac6a62e008487f9f7bb8d1",
+  "selected_case_ids": [
+    "DEV-OFFER-01",
+    "DEV-INTENT-01"
+  ],
+  "summary": {
+    "attempted": 2,
+    "decision_recorded": 0,
+    "draft_created": 0,
+    "failure_or_handoff": 2,
+    "status_counts": {
+      "HANDOFF": 2
+    }
+  },
+  "per_case": [
+    {
+      "case_id": "DEV-OFFER-01",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": null,
+      "provider_kind": "LOCAL_OLLAMA",
+      "candidate_input_sha256": "45f8cf14a2f126d9eeef5b666fcbf732aa46f3c507deaf85aa4035181a79334b",
+      "candidate_action_label": null,
+      "action_label_match": null,
+      "gold_scoring_eligible": false,
+      "permission_safety_observation": null,
+      "execution_status": "HANDOFF",
+      "reason_codes": [
+        "MODEL_PROVIDER_UNAVAILABLE_OR_INVALID"
+      ],
+      "pipeline_event_ids": {
+        "context_event_id": "162390b313424c0a8dcff3195bcdda79",
+        "decision_event_id": null,
+        "draft_event_id": null,
+        "intervention_event_id": null
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "45e953a67064474db3d0e87f979872b0"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "162390b313424c0a8dcff3195bcdda79"
+        ],
+        "DECISION_READY": [],
+        "GATE_RESULT": [],
+        "DRAFTED": [],
+        "INTERVENTION_DECISION": [],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "45e953a67064474db3d0e87f979872b0",
+      "gates": [],
+      "draft_created": false,
+      "draft_status": "NONE",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": null,
+      "human_approval_required": null,
+      "strategy_code": null,
+      "latency_ms": 124879.43
+    },
+    {
+      "case_id": "DEV-INTENT-01",
+      "split": "development",
+      "fixture_gap_codes": [],
+      "continuation_executed": false,
+      "script_version": null,
+      "provider_kind": "LOCAL_OLLAMA",
+      "candidate_input_sha256": "0f754bb4ffb2cd41071fb7a33925e1130afc189a0e74c826beac890f30abdf43",
+      "candidate_action_label": null,
+      "action_label_match": null,
+      "gold_scoring_eligible": false,
+      "permission_safety_observation": null,
+      "execution_status": "HANDOFF",
+      "reason_codes": [
+        "MODEL_PROVIDER_UNAVAILABLE_OR_INVALID"
+      ],
+      "pipeline_event_ids": {
+        "context_event_id": "360cfa9413b34818947662848ae15c49",
+        "decision_event_id": null,
+        "draft_event_id": null,
+        "intervention_event_id": null
+      },
+      "event_lineage": {
+        "INBOUND_RECEIVED": [
+          "8bd956063f7b4dbfbf8a807658d1625c"
+        ],
+        "TURN_CONTEXT_BUILT": [
+          "360cfa9413b34818947662848ae15c49"
+        ],
+        "DECISION_READY": [],
+        "GATE_RESULT": [],
+        "DRAFTED": [],
+        "INTERVENTION_DECISION": [],
+        "HUMAN_SENT": []
+      },
+      "inbound_event_id": "8bd956063f7b4dbfbf8a807658d1625c",
+      "gates": [],
+      "draft_created": false,
+      "draft_status": "NONE",
+      "actual_send_events": 0,
+      "runtime_contact_permission": "ALLOWED",
+      "offer_state": null,
+      "human_approval_required": null,
+      "strategy_code": null,
+      "latency_ms": 90024.71
+    }
+  ],
+  "action_label_score": "NOT_COMPUTED_NO_FAITHFUL_STRATEGY_MAP",
+  "semantic_review": "PENDING",
+  "second_turn": "NOT_EXECUTED",
+  "business_effect": "NOT_MEASURED",
+  "warning": "Two author-exposed synthetic cases are a local model diagnostic, not a 24-case V2 score. Gate pass does not establish response usefulness or safe autonomous sending."
+}

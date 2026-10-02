@@ -16,6 +16,8 @@ The included scorer checks prediction presence, valid label schema, allowed acti
 
 Run the actual application policy gates on full candidate outputs in an end-to-end experiment. Their expected checks include price bounds, negotiation history, prohibited promises, offer approval versions, evidence IDs and preservation of material facts during wording. The label scorer is not a replacement for those gates.
 
+The companion first-turn probe (`python -m evals.run_v2_first_turn`) executes a fixed scripted `CLARIFY` response through the V2 offline workspace for all 24 cases. Report its four different denominators separately: attempted inputs, cases with a persisted decision, cases with equivalent visible fixtures eligible for Gold action comparison, and cases with a human-reviewed semantic score. The current human semantic review denominator is **0 reviewed out of 24 attempted**. A gate `passed=true` establishes only that this particular decision or draft cleared the implemented policy check. It is not an action-quality score. The one unknown-permission handoff and one do-not-contact adapter block are permission safety observations before a decision, not candidate STOP predictions. Unexpected request exceptions count as execution errors; pipeline model/provider failures retain their `HANDOFF` reason codes. Four public evidence fixtures lack runtime tool injection and must be marked as gaps before action comparison. No continuation is executed by this probe.
+
 ## Human semantic review
 
 Use two reviewers blind to candidate identity where practical. Score each dimension 0 (incorrect or missing), 1 (partly adequate) or 2 (clear and supported). Record an exact trace excerpt and a short reason per score. Mark unobservable dimensions N/A; do not award full credit by default. Report the number reviewed and N/A counts for every dimension.
@@ -50,7 +52,7 @@ The current machine dataset includes expectations for these exercises, but does 
 ## Baselines and comparisons
 
 - **Always stop:** implemented and executed. Establishes that conservative abstention alone has low task usefulness.
-- **Existing V2 system:** pending. Run identical public inputs through the frozen runtime and retain decision plus wording traces.
+- **Existing V2 system:** a deterministic scripted first-turn wiring probe is executed, with event and gate traces. A fixed two-case local Ollama diagnostic was also attempted once per case; both ended in provider handoff before a decision, so no model-quality comparison is available. A model-authored V2 run on equivalent public inputs remains pending.
 - **Single-stage drafting baseline:** pending. Same model, visible inputs, tools and budgets; one stage produces a draft without the staged decision/wording separation.
 - **Ablations:** pending. Compare evidence retrieval enabled/disabled and gates enabled/disabled only in offline simulation. Never bypass gates for real sends.
 - **Human reference:** pending. Time a consenting reviewer solving the same synthetic cases, recording corrections and disagreement with Gold.
