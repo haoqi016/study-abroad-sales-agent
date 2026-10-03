@@ -41,54 +41,54 @@ DEFAULT_PRICING_POLICY = {
 }
 # D/E/F have unset detailed delivery boundaries in the current approved
 # contract. They are valid ideas for internal review, not autonomous offers.
-_INSTALLMENT = re.compile(r"(?:分期|先付.{0,12}(?:一半|50%|百分之五十)|尾款|\b(?:installments?|payment plan|pay\s+in\s+\d+\s+parts?|pay\s+half\s+(?:now|upfront)|remaining balance)\b)", re.I)
-_UNAPPROVED_URGENCY = re.compile(r"(?:优惠|折扣|名额).{0,14}(?:仅限|截止|到期|小时|今天|明天|两天|三天)|\b(?:discount|offer|deal|spots?|places?)\b.{0,35}\b(?:today|tomorrow|tonight|hours?|days?|expires?|ends?|deadline|limited time)\b|\b(?:today|tomorrow|tonight)\s+only\b|\b(?:only\s+today|limited\s+time)\b.{0,35}\b(?:discount|offer|deal|spots?|places?)\b", re.I)
-_RESULT_GUARANTEE = re.compile(r"(?:保录|保证录取|包录取|百分之百录取|100%录取)|\b(?:guaranteed?\s+(?:admission|acceptance|offer|place)|guarantee\s+(?:you\s+)?(?:an?\s+)?(?:admission|acceptance|offer|place)|(?:100\s*%|certain)\s+(?:admission|acceptance)|we\s+will\s+(?:definitely|certainly)\s+get\s+you\s+(?:admitted|accepted))\b", re.I)
+_INSTALLMENT = re.compile(r"(?:\u5206\u671f|\u5148\u4ed8.{0,12}(?:\u4e00\u534a|50%|\u767e\u5206\u4e4b\u4e94\u5341)|\u5c3e\u6b3e|\b(?:installments?|payment plan|pay\s+in\s+\d+\s+parts?|pay\s+half\s+(?:now|upfront)|remaining balance)\b)", re.I)
+_UNAPPROVED_URGENCY = re.compile(r"(?:\u4f18\u60e0|\u6298\u6263|\u540d\u989d).{0,14}(?:\u4ec5\u9650|\u622a\u6b62|\u5230\u671f|\u5c0f\u65f6|\u4eca\u5929|\u660e\u5929|\u4e24\u5929|\u4e09\u5929)|\b(?:discount|offer|deal|spots?|places?)\b.{0,35}\b(?:today|tomorrow|tonight|hours?|days?|expires?|ends?|deadline|limited time)\b|\b(?:today|tomorrow|tonight)\s+only\b|\b(?:only\s+today|limited\s+time)\b.{0,35}\b(?:discount|offer|deal|spots?|places?)\b", re.I)
+_RESULT_GUARANTEE = re.compile(r"(?:\u4fdd\u5f55|\u4fdd\u8bc1\u5f55\u53d6|\u5305\u5f55\u53d6|\u767e\u5206\u4e4b\u767e\u5f55\u53d6|100%\u5f55\u53d6)|\b(?:guaranteed?\s+(?:admission|acceptance|offer|place)|guarantee\s+(?:you\s+)?(?:an?\s+)?(?:admission|acceptance|offer|place)|(?:100\s*%|certain)\s+(?:admission|acceptance)|we\s+will\s+(?:definitely|certainly)\s+get\s+you\s+(?:admitted|accepted))\b", re.I)
 _UNAPPROVED_SERVICE_CAPABILITY = re.compile(
-    r"(?:自动|定时).{0,20}(?:提醒|推送)|"
-    r"(?:专属|每位学生|实时|在线).{0,16}(?:进度看板|申请看板)|"
-    r"(?:我们|系统|平台|学生).{0,12}(?:进度看板|申请看板)|"
-    r"(?:绝不|保证|不会|一定不会).{0,16}(?:错过|漏掉).{0,16}(?:截止|节点|申请)|"
+    r"(?:\u81ea\u52a8|\u5b9a\u65f6).{0,20}(?:\u63d0\u9192|\u63a8\u9001)|"
+    r"(?:\u4e13\u5c5e|\u6bcf\u4f4d\u5b66\u751f|\u5b9e\u65f6|\u5728\u7ebf).{0,16}(?:\u8fdb\u5ea6\u770b\u677f|\u7533\u8bf7\u770b\u677f)|"
+    r"(?:\u6211\u4eec|\u7cfb\u7edf|\u5e73\u53f0|\u5b66\u751f).{0,12}(?:\u8fdb\u5ea6\u770b\u677f|\u7533\u8bf7\u770b\u677f)|"
+    r"(?:\u7edd\u4e0d|\u4fdd\u8bc1|\u4e0d\u4f1a|\u4e00\u5b9a\u4e0d\u4f1a).{0,16}(?:\u9519\u8fc7|\u6f0f\u6389).{0,16}(?:\u622a\u6b62|\u8282\u70b9|\u7533\u8bf7)|"
     r"\b(?:automatic|scheduled)\s+(?:deadline\s+)?(?:reminders?|notifications?)\b|"
     r"\b(?:personal|dedicated|real[- ]time)\s+(?:student\s+|application\s+|progress\s+)?(?:dashboard|progress tracker)\b|"
     r"\b(?:guarantee|promise|ensure)\b.{0,25}\b(?:never|won't|will not)\s+(?:miss|overlook)\b.{0,20}\b(?:deadline|application)\b", re.I)
-_ABSTRACT_REQUIRED_CONTENT = re.compile(r"^(?:解释|强调|说明|突出|讲清|告知|询问|展示|体现|阐述|描述|提及|表达|(?:explain|emphasize|describe|highlight|tell|ask|show|mention)\b)", re.I)
-_CASE_CLAIM = re.compile(r"(?:我们|本机构|老师).{0,18}(?:辅导过|经手过|有|见过|积累).{0,18}(?:案例|相似学生|同背景学生)|\b(?:we|our\s+(?:team|advisors?))\b.{0,40}\b(?:worked\s+with|helped|have)\b.{0,35}\b(?:cases?|students?|applicants?)\b", re.I)
-_SPECIFIC_CASE = re.compile(r"(?:与你|跟你|和你|相似|相近|(?<!不)同背景|(?<!不)同层级|同均分|NTU|NUS|港大)|\b(?:similar\s+to\s+you|similar\s+background|same\s+(?:background|grade|score)|NTU|NUS)\b", re.I)
+_ABSTRACT_REQUIRED_CONTENT = re.compile(r"^(?:\u89e3\u91ca|\u5f3a\u8c03|\u8bf4\u660e|\u7a81\u51fa|\u8bb2\u6e05|\u544a\u77e5|\u8be2\u95ee|\u5c55\u793a|\u4f53\u73b0|\u9610\u8ff0|\u63cf\u8ff0|\u63d0\u53ca|\u8868\u8fbe|(?:explain|emphasize|describe|highlight|tell|ask|show|mention)\b)", re.I)
+_CASE_CLAIM = re.compile(r"(?:\u6211\u4eec|\u672c\u673a\u6784|\u8001\u5e08).{0,18}(?:\u8f85\u5bfc\u8fc7|\u7ecf\u624b\u8fc7|\u6709|\u89c1\u8fc7|\u79ef\u7d2f).{0,18}(?:\u6848\u4f8b|\u76f8\u4f3c\u5b66\u751f|\u540c\u80cc\u666f\u5b66\u751f)|\b(?:we|our\s+(?:team|advisors?))\b.{0,40}\b(?:worked\s+with|helped|have)\b.{0,35}\b(?:cases?|students?|applicants?)\b", re.I)
+_SPECIFIC_CASE = re.compile(r"(?:\u4e0e\u4f60|\u8ddf\u4f60|\u548c\u4f60|\u76f8\u4f3c|\u76f8\u8fd1|(?<!\u4e0d)\u540c\u80cc\u666f|(?<!\u4e0d)\u540c\u5c42\u7ea7|\u540c\u5747\u5206|NTU|NUS|\u6e2f\u5927)|\b(?:similar\s+to\s+you|similar\s+background|same\s+(?:background|grade|score)|NTU|NUS)\b", re.I)
 _PROGRAM_FACT = re.compile(
-    r"(?:项目|专业|学校|院校|NTU|NUS|港大|港中文|新国立|南洋理工|university|school|program|course)"
-    r".{0,50}(?:截止|学费|语言要求|雅思|IELTS|托福|均分要求|先修|课程|"
-    r"录取政策|开放申请|GMAT|GRE|GPA|工作经验|deadline|tuition|language requirement|"
+    r"(?:\u9879\u76ee|\u4e13\u4e1a|\u5b66\u6821|\u9662\u6821|NTU|NUS|\u6e2f\u5927|\u6e2f\u4e2d\u6587|\u65b0\u56fd\u7acb|\u5357\u6d0b\u7406\u5de5|university|school|program|course)"
+    r".{0,50}(?:\u622a\u6b62|\u5b66\u8d39|\u8bed\u8a00\u8981\u6c42|\u96c5\u601d|IELTS|\u6258\u798f|\u5747\u5206\u8981\u6c42|\u5148\u4fee|\u8bfe\u7a0b|"
+    r"\u5f55\u53d6\u653f\u7b56|\u5f00\u653e\u7533\u8bf7|GMAT|GRE|GPA|\u5de5\u4f5c\u7ecf\u9a8c|deadline|tuition|language requirement|"
     r"prerequisite|admission requirement|application opens?|open for applications|is open|is closed|work experience)", re.I)
 _PROGRAM_SPECIFIC_VALUE = re.compile(
-    r"(?:20\d{2}\s*年\s*(?:截止|开放|入学)|20\d{2}[-/]\d{1,2}[-/]\d{1,2}|"
-    r"\d{1,2}\s*月\s*(?:\d{1,2}\s*日?|底|初|中|上旬|中旬|下旬|末)|"
-    r"(?:本月|这个月|下个月)\s*(?:底|末|初|中)\s*(?:截止|开放)?|"
-    r"\d+(?:\.\d+)?\s*(?:元|英镑|港币|分)|"
-    r"(?:雅思|IELTS|托福|均分|GPA|GMAT|GRE).{0,8}\d+(?:\.\d+)?|"
-    r"(?:一|二|三|两|四|五|六|七|八|九|十|\d+)\s*年工作经验|"
+    r"(?:20\d{2}\s*\u5e74\s*(?:\u622a\u6b62|\u5f00\u653e|\u5165\u5b66)|20\d{2}[-/]\d{1,2}[-/]\d{1,2}|"
+    r"\d{1,2}\s*\u6708\s*(?:\d{1,2}\s*\u65e5?|\u5e95|\u521d|\u4e2d|\u4e0a\u65ec|\u4e2d\u65ec|\u4e0b\u65ec|\u672b)|"
+    r"(?:\u672c\u6708|\u8fd9\u4e2a\u6708|\u4e0b\u4e2a\u6708)\s*(?:\u5e95|\u672b|\u521d|\u4e2d)\s*(?:\u622a\u6b62|\u5f00\u653e)?|"
+    r"\d+(?:\.\d+)?\s*(?:\u5143|\u82f1\u9551|\u6e2f\u5e01|\u5206)|"
+    r"(?:\u96c5\u601d|IELTS|\u6258\u798f|\u5747\u5206|GPA|GMAT|GRE).{0,8}\d+(?:\.\d+)?|"
+    r"(?:\u4e00|\u4e8c|\u4e09|\u4e24|\u56db|\u4e94|\u516d|\u4e03|\u516b|\u4e5d|\u5341|\d+)\s*\u5e74\u5de5\u4f5c\u7ecf\u9a8c|"
     r"\b20\d{2}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}\b|"
     r"(?:[$£]|USD|SGD|GBP)\s*\d+(?:\.\d+)?|(?:IELTS|TOEFL|GPA|GMAT|GRE)\s*\d+(?:\.\d+)?|\b\d+\s+years?\s+(?:of\s+)?work experience\b)", re.I
 )
 _PROGRAM_CATEGORICAL_ASSERTION = re.compile(
-    r"(?:不要求|无需|免除|必须|要求|已开放|已截止|截止了|尚未截止|"
-    r"暂停申请|关闭申请|课程包括|必修课|选修课|\b(?:requires?|does not require|waives?|is open|is closed|includes? mandatory courses?)\b)", re.I)
-_PROGRAM_QUESTION = re.compile(r"(?:是否|是不是|有无|有没有|多少|哪天|几号|什么|能否|可否|吗[，。？?]?|\?|^\s*(?:whether|when|what|how much|does|is|can)\b)", re.I)
+    r"(?:\u4e0d\u8981\u6c42|\u65e0\u9700|\u514d\u9664|\u5fc5\u987b|\u8981\u6c42|\u5df2\u5f00\u653e|\u5df2\u622a\u6b62|\u622a\u6b62\u4e86|\u5c1a\u672a\u622a\u6b62|"
+    r"\u6682\u505c\u7533\u8bf7|\u5173\u95ed\u7533\u8bf7|\u8bfe\u7a0b\u5305\u62ec|\u5fc5\u4fee\u8bfe|\u9009\u4fee\u8bfe|\b(?:requires?|does not require|waives?|is open|is closed|includes? mandatory courses?)\b)", re.I)
+_PROGRAM_QUESTION = re.compile(r"(?:\u662f\u5426|\u662f\u4e0d\u662f|\u6709\u65e0|\u6709\u6ca1\u6709|\u591a\u5c11|\u54ea\u5929|\u51e0\u53f7|\u4ec0\u4e48|\u80fd\u5426|\u53ef\u5426|\u5417[，。？?]?|\?|^\s*(?:whether|when|what|how much|does|is|can)\b)", re.I)
 _PROGRAM_SENTENCE_BOUNDARY = re.compile(r"[。！？!?；;\n]+")
-_PROGRAM_LOOKUP_INTENT = re.compile(r"(?:帮你|先|会|可以).{0,10}(?:核对|查|查询|确认一下|看一下)|\b(?:i|we)\s+(?:will|can)\s+(?:check|verify|look up)\b", re.I)
-_PROGRAM_SOURCE_REFERRAL = re.compile(r"(?:以|请以|要以)(?:学校)?(?:官网|官方信息|官方公告).{0,3}为准|待官网核实|\b(?:subject to|verify against|check with)\s+(?:the\s+)?(?:official|university)\s+(?:website|source|notice)\b", re.I)
-_MONEY = re.compile(r"(?<!\d)(?:[¥￥$£]\s*\d{3,6}|\d{3,6}\s*(?:元|块|人民币|RMB|CNY|USD|SGD|dollars?|pounds?))(?!\d)", re.I)
+_PROGRAM_LOOKUP_INTENT = re.compile(r"(?:\u5e2e\u4f60|\u5148|\u4f1a|\u53ef\u4ee5).{0,10}(?:\u6838\u5bf9|\u67e5|\u67e5\u8be2|\u786e\u8ba4\u4e00\u4e0b|\u770b\u4e00\u4e0b)|\b(?:i|we)\s+(?:will|can)\s+(?:check|verify|look up)\b", re.I)
+_PROGRAM_SOURCE_REFERRAL = re.compile(r"(?:\u4ee5|\u8bf7\u4ee5|\u8981\u4ee5)(?:\u5b66\u6821)?(?:\u5b98\u7f51|\u5b98\u65b9\u4fe1\u606f|\u5b98\u65b9\u516c\u544a).{0,3}\u4e3a\u51c6|\u5f85\u5b98\u7f51\u6838\u5b9e|\b(?:subject to|verify against|check with)\s+(?:the\s+)?(?:official|university)\s+(?:website|source|notice)\b", re.I)
+_MONEY = re.compile(r"(?<!\d)(?:[¥￥$£]\s*\d{3,6}|\d{3,6}\s*(?:\u5143|\u5757|\u4eba\u6c11\u5e01|RMB|CNY|USD|SGD|dollars?|pounds?))(?!\d)", re.I)
 _NUMERIC_TOKEN = re.compile(r"\d+(?:\.\d+)?")
-_PRODUCT_REF = re.compile(r"(?:产品|套餐|方案|product|package|plan)\s*([A-F])(?![A-Za-z])|(?<![A-Za-z])([A-F])\s*(?:产品|套餐|product|package)", re.I)
-_PRODUCT_REF_CONTINUATION = re.compile(r"\s*(?:或|和|与|及|、|or|and)\s*([A-F])(?![A-Za-z])", re.I)
-_C_EXECUTION = re.compile(r"(?:申请协助|申请执行|申请递交|网申|递交|全流程|全套|application\s+(?:submission|filing|execution)|submit\s+(?:your\s+)?application|full[- ]service|essay\s+(?:writing|drafting))", re.I)
-_C_EXCLUSION = re.compile(r"(?:不含|不包括|不提供|不负责|没有|需另购|另行购买|只交付书面方案|仅交付书面方案|does\s+not\s+include|excludes?|not\s+included|written\s+plan\s+only)", re.I)
+_PRODUCT_REF = re.compile(r"(?:\u4ea7\u54c1|\u5957\u9910|\u65b9\u6848|product|package|plan)\s*([A-F])(?![A-Za-z])|(?<![A-Za-z])([A-F])\s*(?:\u4ea7\u54c1|\u5957\u9910|product|package)", re.I)
+_PRODUCT_REF_CONTINUATION = re.compile(r"\s*(?:\u6216|\u548c|\u4e0e|\u53ca|、|or|and)\s*([A-F])(?![A-Za-z])", re.I)
+_C_EXECUTION = re.compile(r"(?:\u7533\u8bf7\u534f\u52a9|\u7533\u8bf7\u6267\u884c|\u7533\u8bf7\u9012\u4ea4|\u7f51\u7533|\u9012\u4ea4|\u5168\u6d41\u7a0b|\u5168\u5957|application\s+(?:submission|filing|execution)|submit\s+(?:your\s+)?application|full[- ]service|essay\s+(?:writing|drafting))", re.I)
+_C_EXCLUSION = re.compile(r"(?:\u4e0d\u542b|\u4e0d\u5305\u62ec|\u4e0d\u63d0\u4f9b|\u4e0d\u8d1f\u8d23|\u6ca1\u6709|\u9700\u53e6\u8d2d|\u53e6\u884c\u8d2d\u4e70|\u53ea\u4ea4\u4ed8\u4e66\u9762\u65b9\u6848|\u4ec5\u4ea4\u4ed8\u4e66\u9762\u65b9\u6848|does\s+not\s+include|excludes?|not\s+included|written\s+plan\s+only)", re.I)
 _ADVANTAGE_CLAIMS = (
-    ("TEAM_REGION", re.compile(r"(?:我们|团队).{0,12}(?:新加坡|英国|香港).{0,12}(?:成员|老师|团队|当地)|\b(?:our\s+team|we)\b.{0,24}\b(?:Singapore|UK|Hong Kong)\b.{0,24}\b(?:based|local|advisors?|members?)\b", re.I), {"ADV-002"}),
-    ("SCHOOL_INFORMATION", re.compile(r"(?:我们|团队).{0,16}(?:核实|询问).{0,10}(?:学校|院校).{0,8}(?:一手|信息)|(?:学校|院校).{0,10}一手信息|\b(?:we|our\s+team)\b.{0,25}\b(?:verify|check|ask)\b.{0,20}\b(?:school|university)\b.{0,20}\b(?:firsthand|information)\b", re.I), {"ADV-003"}),
-    ("PERSONALIZED_WRITING", re.compile(r"(?:PS|CV|文书).{0,14}(?:个性化|定制|不套模板|不用模板)|\b(?:PS|CV|essay|personal statement)\b.{0,24}\b(?:personalized|customized|no templates?)\b", re.I), {"ADV-004", "ADV-005"}),
-    ("LOCAL_HOUSING", re.compile(r"线下看房|\b(?:in[- ]person|offline)\s+(?:housing|apartment|flat)\s+(?:viewing|visit)\b", re.I), {"ADV-006"}),
-    ("INTERNSHIP_INFO", re.compile(r"实习信息|\binternship\s+(?:information|leads?|opportunities)\b", re.I), {"ADV-008"}),
+    ("TEAM_REGION", re.compile(r"(?:\u6211\u4eec|\u56e2\u961f).{0,12}(?:\u65b0\u52a0\u5761|\u82f1\u56fd|\u9999\u6e2f).{0,12}(?:\u6210\u5458|\u8001\u5e08|\u56e2\u961f|\u5f53\u5730)|\b(?:our\s+team|we)\b.{0,24}\b(?:Singapore|UK|Hong Kong)\b.{0,24}\b(?:based|local|advisors?|members?)\b", re.I), {"ADV-002"}),
+    ("SCHOOL_INFORMATION", re.compile(r"(?:\u6211\u4eec|\u56e2\u961f).{0,16}(?:\u6838\u5b9e|\u8be2\u95ee).{0,10}(?:\u5b66\u6821|\u9662\u6821).{0,8}(?:\u4e00\u624b|\u4fe1\u606f)|(?:\u5b66\u6821|\u9662\u6821).{0,10}\u4e00\u624b\u4fe1\u606f|\b(?:we|our\s+team)\b.{0,25}\b(?:verify|check|ask)\b.{0,20}\b(?:school|university)\b.{0,20}\b(?:firsthand|information)\b", re.I), {"ADV-003"}),
+    ("PERSONALIZED_WRITING", re.compile(r"(?:PS|CV|\u6587\u4e66).{0,14}(?:\u4e2a\u6027\u5316|\u5b9a\u5236|\u4e0d\u5957\u6a21\u677f|\u4e0d\u7528\u6a21\u677f)|\b(?:PS|CV|essay|personal statement)\b.{0,24}\b(?:personalized|customized|no templates?)\b", re.I), {"ADV-004", "ADV-005"}),
+    ("LOCAL_HOUSING", re.compile(r"\u7ebf\u4e0b\u770b\u623f|\b(?:in[- ]person|offline)\s+(?:housing|apartment|flat)\s+(?:viewing|visit)\b", re.I), {"ADV-006"}),
+    ("INTERNSHIP_INFO", re.compile(r"\u5b9e\u4e60\u4fe1\u606f|\binternship\s+(?:information|leads?|opportunities)\b", re.I), {"ADV-008"}),
 )
 
 
@@ -141,7 +141,7 @@ def _check_product_claims(text: str, offer: dict, pricing_policy: dict) -> None:
 def _claims_installment(text: str) -> bool:
     for match in _INSTALLMENT.finditer(text):
         prefix = text[max(0, match.start() - 30):match.start()]
-        if match.group() == "分期" and re.search(r"(?:不支持|不能|不可|不做|没有|无|不允许)$", prefix):
+        if match.group() == "\u5206\u671f" and re.search(r"(?:\u4e0d\u652f\u6301|\u4e0d\u80fd|\u4e0d\u53ef|\u4e0d\u505a|\u6ca1\u6709|\u65e0|\u4e0d\u5141\u8bb8)$", prefix):
             continue
         if re.search(r"\b(?:do\s+not|don't|cannot|can't|no|not\s+available)\s+(?:offer|allow|support|have)?\s*$", prefix, re.I):
             continue
@@ -281,7 +281,7 @@ def validate_decision(context: dict, decision: dict, returned: dict[str, dict],
                 if negotiation.get("later_counter_requires_human") and price != negotiation["first_counter"]:
                     raise PolicyViolation("SECOND_COUNTER_REQUIRES_HUMAN")
             if quote["product_id"] == "C" and (_product_c_scope_exceeded(text) or re.search(
-                r"(?:我们|机构|老师).{0,12}(?:帮你|代你|替你).{0,8}(?:递交|网申|文书撰写)|"
+                r"(?:\u6211\u4eec|\u673a\u6784|\u8001\u5e08).{0,12}(?:\u5e2e\u4f60|\u4ee3\u4f60|\u66ff\u4f60).{0,8}(?:\u9012\u4ea4|\u7f51\u7533|\u6587\u4e66\u64b0\u5199)|"
                 r"\b(?:we|our\s+(?:team|advisors?))\b.{0,22}\b(?:submit|file|write|draft)\b.{0,18}\b(?:application|essay|personal statement)\b", text, re.I)):
                 raise PolicyViolation("PRODUCT_C_SCOPE_EXCEEDED")
             prices_in_text = _money_values(text)

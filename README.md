@@ -34,6 +34,8 @@ The repository contains the V2 offline architecture and coursework fixtures:
 | `sales_agent/v2_runtime/` | Event records, revisions, human review, and actual-send recording |
 | `sales_agent/v2_tools/` | Read-only evidence tool contracts and source checks |
 | `sales_agent/v2_offline_api/` | Adapter for the local synthetic workspace |
+| `sales_agent/v2_security/` | Opt-in, fail-closed authentication, scope, model-data and deployment configuration seams; not wired to the demo |
+| `sales_agent/v2_notifications/` | Opt-in generic reminder-delivery boundary with injected store/sender; not wired to Firebase or devices |
 | `web/` | Browser demo and loopback-only Python bridge |
 | `knowledge/advantages.v1.json` | Invented, digest-pinned advantage cards used only to exercise the tool path |
 | `evals/` | English synthetic development cases and repeatable evaluation protocol |
@@ -59,6 +61,8 @@ Open `http://127.0.0.1:8765/?bridge=offline` for the synthetic workspace. The br
 ## Evaluation and cost
 
 The [evaluation guide](evals/README.md) explains the English development cases, labels, B0/B1/B2 comparison, commands, scoring, and limits. The cases are synthetic adaptations and newly invented challenges. They are **not** the private, owner-approved Gold set and not an independent holdout. Scripted tests can check schema, event lineage, policy constraints and reproducibility; adviser judgment and real customer outcomes remain unmeasured.
+
+The security and notification packages are standalone, opt-in boundaries. They use injected identity, directory, storage, and transport interfaces and are not connected to the browser bridge. Their SDK stubs and synthetic tests do not establish deployed authentication, cloud configuration, push delivery, or real-student readiness. Run the focused checks with `python3 -m unittest tests.test_v2_security_sync tests.test_v2_security_sync_data tests.test_v2_security_sync_firebase tests.test_v2_notification_sync -v`.
 
 The [cost analysis](analysis/COST_ANALYSIS.md) compares a zero-model rule/template baseline (B0), a one-call baseline (B1), and the V2 multi-stage path (B2). Its prices, tokens, handling times, volume, fixed costs, build effort and acceptance rates are **assumptions**, not observed spend or savings. Reproduce its arithmetic with `python3 analysis/cost_model.py` and `python3 -m unittest analysis.test_cost_model -v`.
 

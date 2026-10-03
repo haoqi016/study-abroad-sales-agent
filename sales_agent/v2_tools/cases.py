@@ -42,8 +42,8 @@ _PROFILE_PATHS = {
     "target_program_or_major": ("education.target_program_or_major", "targets.programs_or_majors"),
 }
 _COUNTRY_WORDS = {
-    "SG": ("新加坡", "Singapore"), "HK": ("香港", "Hong Kong"),
-    "UK": ("英国", "United Kingdom"), "AU": ("澳大利亚", "澳洲", "Australia"),
+    "SG": ("\u65b0\u52a0\u5761", "Singapore"), "HK": ("\u9999\u6e2f", "Hong Kong"),
+    "UK": ("\u82f1\u56fd", "United Kingdom"), "AU": ("\u6fb3\u5927\u5229\u4e9a", "\u6fb3\u6d32", "Australia"),
 }
 
 
@@ -64,15 +64,15 @@ def _stated_in_current_message(key: str, value: Any, raw_text: str) -> bool:
         return False
     if key == "average_score" and type(value) in {int, float}:
         candidates = (str(value),)
-        prefix = r"(?:均分|平均分|成绩|分数|GPA|score|average\s+(?:grade|score))\s*(?:是|为|有|is|of|:)?\s*"
+        prefix = r"(?:\u5747\u5206|\u5e73\u5747\u5206|\u6210\u7ee9|\u5206\u6570|GPA|score|average\s+(?:grade|score))\s*(?:\u662f|\u4e3a|\u6709|is|of|:)?\s*"
     elif isinstance(value, str) and value.strip():
         candidates = (value, *_COUNTRY_WORDS.get(value, ())) if key == "target_country" else (value,)
         prefix = {
-            "undergraduate_university_raw": r"(?:本科|毕业于|就读于|graduated\s+from|study(?:ing)?\s+at|my\s+undergraduate\s+university\s+is)\s*(?:是|在)?\s*",
-            "undergraduate_major_raw": r"(?:本科专业|专业是|就读专业|my\s+(?:undergraduate\s+)?major\s+is|i\s+majored\s+in)\s*",
-            "target_country": r"(?:想申请|申请|目标(?:是|为)?|计划去|考虑申请|i\s+want\s+to\s+apply\s+to|i\s+plan\s+to\s+study\s+in|my\s+target\s+is)\s*",
-            "target_university": r"(?:想申请|申请|目标(?:是|为)?|计划申请|考虑申请|i\s+want\s+to\s+apply\s+to|my\s+target\s+university\s+is)\s*",
-            "target_program_or_major": r"(?:想申请|申请|目标(?:是|为)?|计划申请|考虑申请|i\s+want\s+to\s+apply\s+to|my\s+target\s+program\s+is)\s*",
+            "undergraduate_university_raw": r"(?:\u672c\u79d1|\u6bd5\u4e1a\u4e8e|\u5c31\u8bfb\u4e8e|graduated\s+from|study(?:ing)?\s+at|my\s+undergraduate\s+university\s+is)\s*(?:\u662f|\u5728)?\s*",
+            "undergraduate_major_raw": r"(?:\u672c\u79d1\u4e13\u4e1a|\u4e13\u4e1a\u662f|\u5c31\u8bfb\u4e13\u4e1a|my\s+(?:undergraduate\s+)?major\s+is|i\s+majored\s+in)\s*",
+            "target_country": r"(?:\u60f3\u7533\u8bf7|\u7533\u8bf7|\u76ee\u6807(?:\u662f|\u4e3a)?|\u8ba1\u5212\u53bb|\u8003\u8651\u7533\u8bf7|i\s+want\s+to\s+apply\s+to|i\s+plan\s+to\s+study\s+in|my\s+target\s+is)\s*",
+            "target_university": r"(?:\u60f3\u7533\u8bf7|\u7533\u8bf7|\u76ee\u6807(?:\u662f|\u4e3a)?|\u8ba1\u5212\u7533\u8bf7|\u8003\u8651\u7533\u8bf7|i\s+want\s+to\s+apply\s+to|my\s+target\s+university\s+is)\s*",
+            "target_program_or_major": r"(?:\u60f3\u7533\u8bf7|\u7533\u8bf7|\u76ee\u6807(?:\u662f|\u4e3a)?|\u8ba1\u5212\u7533\u8bf7|\u8003\u8651\u7533\u8bf7|i\s+want\s+to\s+apply\s+to|my\s+target\s+program\s+is)\s*",
         }[key]
     else:
         return False
@@ -80,8 +80,8 @@ def _stated_in_current_message(key: str, value: Any, raw_text: str) -> bool:
     # an unconfirmed fact. Anything attributed to another person or negated
     # falls back to human-confirmed CRM input.
     for sentence in re.split(r"[。！？；;.!?\n]", raw_text):
-        if not re.search(r"(?:我|本人|\b(?:i|my)\b)", sentence, re.I) or re.search(
-                r"(?:不是|并非|没有|不想|不申|不考虑|朋友|同学|别人|客户|他|她|\b(?:not|don't|do\s+not|friend|classmate|someone\s+else|they)\b)", sentence, re.I):
+        if not re.search(r"(?:\u6211|\u672c\u4eba|\b(?:i|my)\b)", sentence, re.I) or re.search(
+                r"(?:\u4e0d\u662f|\u5e76\u975e|\u6ca1\u6709|\u4e0d\u60f3|\u4e0d\u7533|\u4e0d\u8003\u8651|\u670b\u53cb|\u540c\u5b66|\u522b\u4eba|\u5ba2\u6237|\u4ed6|\u5979|\b(?:not|don't|do\s+not|friend|classmate|someone\s+else|they)\b)", sentence, re.I):
             continue
         for candidate in candidates:
             token = re.escape(candidate.strip())

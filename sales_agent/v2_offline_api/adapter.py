@@ -11,8 +11,11 @@ import sqlite3
 from typing import Callable
 from uuid import uuid4
 
-from sales_agent.v2_pipeline import DeterministicOfflineProvider, JSONProvider, ToolPorts, V2SalesPipeline
+from sales_agent.v2_pipeline import DeterministicOfflineProvider, JSONProvider, LocalOllamaJSONProvider, ToolPorts, V2SalesPipeline
 from sales_agent.v2_runtime import V2RuntimeStore
+from sales_agent.v2_tools.offline_public_cases import OfflinePublicCasesSource
+from sales_agent.v2_tools.official_program_source import PinnedOfficialProgramSource
+from sales_agent.v2_tools.program_snapshot import ApprovedProgramSnapshot
 from .progress import assess_explicit_reply
 
 
@@ -49,13 +52,34 @@ class OfflineWorkspaceApi:
     _DB_MARKER = "sales-v2-synthetic-offline-workspace-v1"
 
     def __init__(self, *, local_provider_factory: Callable[[], JSONProvider] | None = None,
-                 db_path: str | Path | None = None) -> None:
+                 provider_mode: str = "LOCAL_OLLAMA", db_path: str | Path | None = None,
+                 offline_public_cases_source: OfflinePublicCasesSource | None = None,
+                 allow_remote_public_cases: bool = False,
+                 program_source: ApprovedProgramSnapshot | None = None,
+                 official_source: PinnedOfficialProgramSource | None = None) -> None:
+        if provider_mode not in {"LOCAL_OLLAMA", "REMOTE_API"}:
+            raise OfflineOnlyError("unsupported_provider_mode")
+        if offline_public_cases_source is not None and local_provider_factory is None:
+            raise OfflineOnlyError("offline_public_cases_require_explicit_model")
+        if allow_remote_public_cases != (offline_public_cases_source is not None and provider_mode == "REMOTE_API"):
+            if allow_remote_public_cases or (offline_public_cases_source is not None and provider_mode == "REMOTE_API"):
+                raise OfflineOnlyError("remote_public_cases_require_explicit_api_opt_in")
+        if program_source is not None and not isinstance(program_source, ApprovedProgramSnapshot):
+            raise OfflineOnlyError("approved_program_snapshot_required")
+        if official_source is not None and (not isinstance(official_source, PinnedOfficialProgramSource)
+                                            or official_source.program_source is not program_source):
+            raise OfflineOnlyError("official_mapping_requires_same_approved_program_snapshot")
+        if (program_source is not None or official_source is not None) and local_provider_factory is None:
+            raise OfflineOnlyError("program_sources_require_explicit_model")
         path = self._prepare_db_path(db_path) if db_path is not None else ":memory:"
         self._store = V2RuntimeStore(path)
         self._students: dict[str, str] = {}
         self._scripts: dict[str, list[dict]] = {}
         self._local_provider_factory = local_provider_factory
-        self.agent_mode = "LOCAL_OLLAMA" if local_provider_factory else "SCRIPTED"
+        self._offline_public_cases_source = offline_public_cases_source
+        self._program_source = program_source
+        self._official_source = official_source
+        self.agent_mode = provider_mode if local_provider_factory else "SCRIPTED"
         if db_path is not None:
             try:
                 self._restore_students()
@@ -113,7 +137,7 @@ class OfflineWorkspaceApi:
                     snapshot = event["payload"]["snapshot"]
                     self._assert_synthetic(snapshot)
                     name = _text(snapshot.get("display_name"), "display_name")
-                    if "合成" not in name and "DEMO" not in name.upper():
+                    if "DEMO" not in name.upper():
                         raise OfflineOnlyError("invalid_synthetic_workspace_history")
                     if snapshot.get("student_id") != student_id:
                         raise OfflineOnlyError("invalid_synthetic_workspace_history")
@@ -165,8 +189,14 @@ class OfflineWorkspaceApi:
     def _pipeline(self, student_id: str) -> V2SalesPipeline:
         if self._local_provider_factory is not None:
             provider = self._local_provider_factory()
+            if self._offline_public_cases_source is not None and self.agent_mode == "LOCAL_OLLAMA" and not isinstance(provider, LocalOllamaJSONProvider):
+                raise OfflineOnlyError("offline_public_cases_require_local_ollama")
             return V2SalesPipeline(store=self._store, decision_provider=provider,
-                                   conversation_provider=provider, tools=ToolPorts())
+                                   conversation_provider=provider,
+                                   tools=ToolPorts(offline_public_cases_source=self._offline_public_cases_source,
+                                                   offline_homework_mode=self._offline_public_cases_source is not None,
+                                                   program_source=self._program_source,
+                                                   official_source=self._official_source))
         queue = self._scripts.get(student_id, [])
         if not queue:
             raise OfflineOnlyError("scripted_offline_response_required")
@@ -194,7 +224,7 @@ class OfflineWorkspaceApi:
                for key, fields in nested.items()):
             raise OfflineOnlyError("unsupported_demo_student_field")
         name = _text(record.get("display_name"), "display_name")
-        if "合成" not in name and "DEMO" not in name.upper():
+        if "DEMO" not in name.upper():
             raise OfflineOnlyError("synthetic_display_name_required")
         student_id, conversation_id = uuid4().hex, uuid4().hex
         sales = deepcopy(record.get("sales") or {})
@@ -253,7 +283,7 @@ class OfflineWorkspaceApi:
         snapshot = current["snapshot"]
         if "display_name" in patch:
             name = _text(patch["display_name"], "display_name")
-            if "合成" not in name and "DEMO" not in name.upper():
+            if "DEMO" not in name.upper():
                 raise OfflineOnlyError("synthetic_display_name_required")
             snapshot["display_name"] = name
         for key in nested:

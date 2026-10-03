@@ -3,6 +3,15 @@ __pycache__/
 .venv/
 .env
 .env.*
+# Local provider configuration (public *.example templates remain trackable).
+api.local.json
+api.*.local.json
+.api.local.json.sw?
+.api.*.local.json.sw?
+# Local HMAC provenance keys accepted by the program/public-case CLI flags.
+*provenance-key*
+*offline-public-cases-key*
+private-*-key
 logs/
 .pytest_cache/
 .deepeval/

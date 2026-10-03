@@ -56,15 +56,15 @@ def _opaque_id() -> str:
 def _sent_offer_price(text: str) -> int | None:
     """Extract one explicit, affirmative sent quote; ambiguity stays unstructured."""
     amounts = list(re.finditer(
-        r"(?<!\d)(?:[¥￥$£]\s*(\d{3,7})|(\d{3,7})\s*(?:元|块|RMB|CNY|USD|SGD|dollars?|pounds?))(?!\d)",
+        r"(?<!\d)(?:[¥￥$£]\s*(\d{3,7})|(\d{3,7})\s*(?:\u5143|\u5757|RMB|CNY|USD|SGD|dollars?|pounds?))(?!\d)",
         text, re.I))
     if len(amounts) != 1 or not re.search(
-        r"报价|价格|总价|费用|方案|全套|按|给你|给到|只要|收你|¥|￥|"
+        r"\u62a5\u4ef7|\u4ef7\u683c|\u603b\u4ef7|\u8d39\u7528|\u65b9\u6848|\u5168\u5957|\u6309|\u7ed9\u4f60|\u7ed9\u5230|\u53ea\u8981|\u6536\u4f60|¥|￥|"
         r"\b(?:quote|price|costs?|package|plan|offer|charge)\b|[$£]", text, re.I):
         return None
     match = amounts[0]
     before = text[max(0, match.start() - 45):match.start()]
-    if re.search(r"不是|并非|不能|无法|不按|原价|预算|最多|上限|之前|原本|"
+    if re.search(r"\u4e0d\u662f|\u5e76\u975e|\u4e0d\u80fd|\u65e0\u6cd5|\u4e0d\u6309|\u539f\u4ef7|\u9884\u7b97|\u6700\u591a|\u4e0a\u9650|\u4e4b\u524d|\u539f\u672c|"
                  r"\b(?:not|cannot|can't|budget|at\s+most|up\s+to|original|previous)\b", before, re.I):
         return None
     return int(match.group(1) or match.group(2))
@@ -72,7 +72,7 @@ def _sent_offer_price(text: str) -> int | None:
 
 def _sent_offer_currency(text: str) -> str | None:
     """Currency is recorded only when the literal sent text identifies it."""
-    if re.search(r"[¥￥]|\b(?:RMB|CNY)\b|\d\s*(?:元|块)", text, re.I):
+    if re.search(r"[¥￥]|\b(?:RMB|CNY)\b|\d\s*(?:\u5143|\u5757)", text, re.I):
         return "CNY"
     if re.search(r"\$|\b(?:USD|dollars?)\b", text, re.I):
         return "USD"
@@ -86,13 +86,13 @@ def _sent_offer_currency(text: str) -> str | None:
 def _sent_payment_terms(text: str) -> list[str]:
     """Keep only literal, affirmative payment phrases from the sent message."""
     candidates = re.finditer(
-        r"一次付清|全款支付|分[一二两三四五六七八九十\d]+期(?:付款)?|分期付款|"
+        r"\u4e00\u6b21\u4ed8\u6e05|\u5168\u6b3e\u652f\u4ed8|\u5206[\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\d]+\u671f(?:\u4ed8\u6b3e)?|\u5206\u671f\u4ed8\u6b3e|"
         r"\b(?:pay\s+in\s+full|full\s+payment|pay\s+in\s+\d+\s+installments?|payment\s+plan|pay\s+half\s+(?:now|upfront))\b",
         text, re.I)
     terms = []
     for match in candidates:
         before = text[max(0, match.start() - 35):match.start()]
-        if not re.search(r"(?:不|不能|无法|并非|不是|\b(?:not|no|cannot|can't|don't|do\s+not)\s+(?:(?:offer|allow|support|have)\s+)?(?:an?\s+)?)$", before, re.I) and match.group() not in terms:
+        if not re.search(r"(?:\u4e0d|\u4e0d\u80fd|\u65e0\u6cd5|\u5e76\u975e|\u4e0d\u662f|\b(?:not|no|cannot|can't|don't|do\s+not)\s+(?:(?:offer|allow|support|have)\s+)?(?:an?\s+)?)$", before, re.I) and match.group() not in terms:
             terms.append(match.group())
     return terms
 
@@ -652,7 +652,7 @@ class V2RuntimeStore:
         text = sent["payload"]["actual_sent_text"]
         price = _sent_offer_price(text)
         terms = _sent_payment_terms(text)
-        if price is None and not terms and not re.search(r"报价待定|价格待定|具体价格还需要确认|\b(?:price\s+(?:is\s+)?pending|price\s+to\s+be\s+confirmed|quote\s+pending)\b", text, re.I):
+        if price is None and not terms and not re.search(r"\u62a5\u4ef7\u5f85\u5b9a|\u4ef7\u683c\u5f85\u5b9a|\u5177\u4f53\u4ef7\u683c\u8fd8\u9700\u8981\u786e\u8ba4|\b(?:price\s+(?:is\s+)?pending|price\s+to\s+be\s+confirmed|quote\s+pending)\b", text, re.I):
             # A draft or approval with no actual commercial content is not a sent Offer.
             return None
         value = {

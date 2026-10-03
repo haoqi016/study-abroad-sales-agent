@@ -16,8 +16,10 @@ VALID_STATUSES = {"OK", "NO_RESULTS", "UNAVAILABLE", "INVALID_REQUEST", "POLICY_
 MAX_CATALOG_BYTES = 1_000_000
 _PRIVATE_PATTERN = re.compile(
     r"(?:[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:\+?86[- ]?)?1[3-9]\d{9}|"
-    r"(?:微信|手机号|身份证|客户编号|case[_ -]?id|student[_ -]?id|姓名|"
-    r"wechat|phone(?:\s+number)?|national\s+id|customer\s+id|full\s+name)\s*[:：])",
+    # Unicode escapes keep the public source ASCII while retaining Chinese PII labels.
+    r"(?:\u5fae\u4fe1|\u624b\u673a\u53f7|\u8eab\u4efd\u8bc1|"
+    r"\u5ba2\u6237\u7f16\u53f7|case[_ -]?id|student[_ -]?id|\u59d3\u540d|"
+    r"wechat|phone(?:\s+number)?|national\s+id|customer\s+id|full\s+name)\s*[:\uFF1A])",
     re.IGNORECASE,
 )
 

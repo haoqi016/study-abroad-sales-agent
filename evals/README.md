@@ -86,3 +86,7 @@ Package A uses synthetic units: list 1000, floor 900, first counter 950 after at
 | Live customer satisfaction, conversion or revenue | NOT MEASURED |
 
 The CJK scan is a useful regression check, not linguistic proof of fluent English. Action-label agreement is deliberately coarse; multiple reasonable actions may exist beyond the current reference labels. Revise disputed Gold only through a documented review, never silently to fit model outputs. Passing all label checks cannot certify the response text, evidence binding, actual runtime tool behavior, correct persistence or safe sending. Runtime policy tests and human semantic review remain separate requirements.
+
+## Separation from private evaluation artifacts
+
+This public package contains only its English synthetic fixtures and their public labels. Private Owner Gold, private holdout encodings, reviewer annotations, remote traces, credentials, and real student records are not part of this repository and must not be copied into it. The public challenge cases are not a substitute for a sealed independent holdout, and the public evaluator cannot establish Owner approval or production readiness. The separate security and notification modules add no evaluation examples or scores; their tests use fictional data and injected local fakes.

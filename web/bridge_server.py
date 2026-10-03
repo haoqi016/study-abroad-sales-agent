@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import argparse
+import os
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -12,7 +13,11 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from sales_agent.v2_offline_api import OfflineOnlyError, OfflineWorkspaceApi  # noqa: E402
-from sales_agent.v2_pipeline import LocalOllamaJSONProvider  # noqa: E402
+from sales_agent.v2_pipeline import LocalOllamaJSONProvider, OpenAICompatibleProvider  # noqa: E402
+from sales_agent.v2_tools.offline_public_cases import OfflinePublicCasesSource  # noqa: E402
+from sales_agent.v2_tools.official_program_source import PinnedOfficialProgramSource  # noqa: E402
+from sales_agent.v2_tools.program_snapshot import ApprovedProgramSnapshot  # noqa: E402
+from sales_agent.v2_tools.delegated_program import load_delegated_program_sources  # noqa: E402
 
 WEB = Path(__file__).resolve().parent
 STATIC = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js",
@@ -21,6 +26,37 @@ STATIC = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js",
           "/manifest.webmanifest": "manifest.webmanifest"}
 MIME = {".html": "text/html", ".js": "text/javascript", ".css": "text/css",
         ".webmanifest": "application/manifest+json"}
+
+
+def load_api_config(path: Path) -> dict:
+    """Read a private, local-only provider config without printing credentials."""
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("api_config_must_be_a_regular_file")
+    stat = path.stat()
+    if stat.st_uid != os.getuid() or stat.st_mode & 0o077 or stat.st_size > 8192:
+        raise ValueError("api_config_must_be_owner_only_0600_and_small")
+    try:
+        config = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("api_config_invalid_json") from exc
+    if not isinstance(config, dict) or set(config) != {"base_url", "model", "api_key"}:
+        raise ValueError("api_config_fields_required")
+    if any(not isinstance(config[field], str) or not config[field].strip()
+           for field in ("base_url", "model", "api_key")):
+        raise ValueError("api_config_values_required")
+    if "YOUR_" in config["api_key"] or "EXAMPLE" in config["api_key"].upper():
+        raise ValueError("api_config_placeholder_key")
+    return config
+
+
+def load_private_secret(path: Path) -> bytes:
+    """Load an audit-ID key without exposing it in diagnostics or model context."""
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("private_secret_must_be_a_regular_file")
+    stat = path.stat()
+    if stat.st_uid != os.getuid() or stat.st_mode & 0o077 or not 32 <= stat.st_size <= 4096:
+        raise ValueError("private_secret_must_be_owner_only_0600_and_32_to_4096_bytes")
+    return path.read_bytes()
 
 
 def scripted_turn(inbound_id: str, inbound_raw: str, previous_objective_id: str | None = None,
@@ -205,12 +241,124 @@ def main() -> None:
     parser.add_argument("port", nargs="?", type=int, default=8765)
     parser.add_argument("--ollama-model", help="Explicitly use a locally installed Ollama model")
     parser.add_argument("--ollama-timeout", type=float, default=180.0)
+    parser.add_argument("--api-config", type=Path,
+                        help="Private 0600 JSON config for a compatible chat/completions API")
+    parser.add_argument("--api-timeout", type=float, default=120.0)
+    parser.add_argument("--offline-public-cases", action="store_true",
+                        help="Opt in to coarse external references for synthetic homework")
+    parser.add_argument("--offline-public-cases-db", type=Path,
+                        help="Explicit local synthetic reference SQLite source")
+    parser.add_argument("--offline-public-cases-sha256",
+                        help="Pinned SHA-256 of the synthetic reference SQLite source")
+    parser.add_argument("--remote-public-cases", action="store_true",
+                        help="Explicitly allow the coarse, source-labelled reference result to reach the remote API")
+    parser.add_argument("--offline-public-cases-key-file", type=Path,
+                        help="Optional local 0600 file with >=32 random bytes for stable audit IDs")
+    parser.add_argument("--delegated-program-batch", type=Path,
+                        help="Official-only batch directory with Owner delegation and current field receipts")
+    parser.add_argument("--program-snapshot", type=Path,
+                        help="Separately approved Sales-safe Program JSON snapshot")
+    parser.add_argument("--program-approval", type=Path,
+                        help="Owner approval manifest bound to the Program snapshot digest")
+    parser.add_argument("--program-provenance-key-file", type=Path,
+                        help="Local 0600 audit-ID key for the approved Program snapshot")
+    parser.add_argument("--official-catalog", type=Path,
+                        help="Pinned official-page field catalog bound to the approved Program snapshot")
+    parser.add_argument("--official-approval", type=Path,
+                        help="Owner field approval manifest bound to the official catalog digest")
     parser.add_argument("--sqlite-file", type=Path,
                         help="Explicit local SQLite file for synthetic workspace persistence")
     args = parser.parse_args()
-    factory = (lambda: LocalOllamaJSONProvider(model=args.ollama_model,
-                                               timeout_seconds=args.ollama_timeout)) if args.ollama_model else None
-    with OfflineWorkspaceApi(local_provider_factory=factory, db_path=args.sqlite_file) as api:
+    if args.ollama_model and args.api_config:
+        parser.error("--ollama-model and --api-config are mutually exclusive")
+    if args.api_timeout <= 0:
+        parser.error("--api-timeout must be positive")
+    if args.offline_public_cases and not (args.ollama_model or args.api_config):
+        parser.error("--offline-public-cases requires an explicitly selected model")
+    if args.offline_public_cases and not (args.offline_public_cases_db and args.offline_public_cases_sha256):
+        parser.error("--offline-public-cases requires an explicit SQLite source and SHA-256")
+    if (args.offline_public_cases_db or args.offline_public_cases_sha256) and not args.offline_public_cases:
+        parser.error("case source flags require --offline-public-cases")
+    if args.remote_public_cases and not (args.offline_public_cases and args.api_config):
+        parser.error("--remote-public-cases requires --offline-public-cases and --api-config")
+    if args.offline_public_cases and args.api_config and not args.remote_public_cases:
+        parser.error("remote public references require explicit --remote-public-cases")
+    if args.offline_public_cases_key_file and not args.offline_public_cases:
+        parser.error("--offline-public-cases-key-file requires --offline-public-cases")
+    program_flags = (args.program_snapshot, args.program_approval, args.program_provenance_key_file)
+    if args.delegated_program_batch and (args.program_snapshot or args.program_approval or args.official_catalog or args.official_approval):
+        parser.error("Delegated official batch cannot be combined with legacy Program approval flags")
+    if args.delegated_program_batch and (not args.program_provenance_key_file or not (args.ollama_model or args.api_config)):
+        parser.error("Delegated official batch requires private provenance key and explicit model")
+    if not args.delegated_program_batch and any(program_flags) and not all(program_flags):
+        parser.error("Program source requires snapshot, approval manifest, and private provenance key together")
+    if all(program_flags) and not (args.ollama_model or args.api_config):
+        parser.error("Program source requires an explicitly selected model")
+    official_flags = (args.official_catalog, args.official_approval)
+    if any(official_flags) and (not all(official_flags) or not all(program_flags)):
+        parser.error("Official verification requires catalog, field approval, and approved Program snapshot together")
+    secret = None
+    if args.offline_public_cases_key_file:
+        try:
+            secret = load_private_secret(args.offline_public_cases_key_file)
+        except ValueError as exc:
+            parser.error(str(exc))
+    cases_source = None
+    if args.offline_public_cases:
+        try:
+            cases_source = OfflinePublicCasesSource(path=args.offline_public_cases_db,
+                                                    expected_sha256=args.offline_public_cases_sha256,
+                                                    secret=secret)
+        except ValueError as exc:
+            parser.error(str(exc))
+    program_source = None
+    if all(program_flags):
+        try:
+            program_source = ApprovedProgramSnapshot(
+                args.program_snapshot, args.program_approval,
+                provenance_secret=load_private_secret(args.program_provenance_key_file),
+            )
+        except (OSError, ValueError):
+            parser.error("Program source approval or snapshot validation failed")
+    official_source = None
+    if all(official_flags):
+        try:
+            official_source = PinnedOfficialProgramSource(
+                args.official_catalog, args.official_approval,
+                program_source=program_source,
+            )
+        except (OSError, ValueError):
+            parser.error("Official field approval or catalog validation failed")
+    if args.delegated_program_batch:
+        try:
+            program_source, official_source = load_delegated_program_sources(
+                args.delegated_program_batch,
+                provenance_secret=load_private_secret(args.program_provenance_key_file),
+            )
+        except (OSError, ValueError):
+            parser.error("Delegated Program authorization, batch mapping or fresh receipts invalid")
+    if args.api_config:
+        try:
+            config = load_api_config(args.api_config)
+            # Validate endpoint and model before the bridge begins accepting requests.
+            provider = OpenAICompatibleProvider(**config, timeout_seconds=args.api_timeout)
+        except ValueError as exc:
+            parser.error(str(exc))
+        factory = lambda: provider
+        provider_mode = "REMOTE_API"
+    elif args.ollama_model:
+        factory = lambda: LocalOllamaJSONProvider(model=args.ollama_model,
+                                                  timeout_seconds=args.ollama_timeout)
+        provider_mode = "LOCAL_OLLAMA"
+    else:
+        factory = None
+        provider_mode = "LOCAL_OLLAMA"
+    with OfflineWorkspaceApi(local_provider_factory=factory, provider_mode=provider_mode,
+                             db_path=args.sqlite_file,
+                             offline_public_cases_source=cases_source,
+                             allow_remote_public_cases=args.remote_public_cases,
+                             program_source=program_source,
+                             official_source=official_source) as api:
         server = HTTPServer(("127.0.0.1", args.port), make_handler(api))
         print(f"Synthetic workspace ({api.agent_mode}): http://127.0.0.1:{args.port}/?bridge=offline", flush=True)
         try: server.serve_forever()

@@ -18,7 +18,10 @@ from sales_agent.v2_tools import (
     get_program_evidence, get_sales_methodologies, program_freshness_actions,
     search_anonymized_cases, select_approved_advantages, verify_program_claims,
 )
+from sales_agent.v2_tools.common import envelope
 from sales_agent.v2_tools.cases import bind_case_request, unverified_case_query_response
+from sales_agent.v2_tools.offline_public_cases import search_offline_public_references
+from sales_agent.v2_tools.program_batch import bind_program_batch
 
 from .policy import (
     DEFAULT_PRICING_POLICY, GOLD_POLICY_VERSION, POLICY_GATE_VERSION, PolicyViolation,
@@ -67,6 +70,8 @@ class ToolPorts:
     """Optional, explicitly approved data adapters; None fails closed."""
 
     cases_source: Any = None
+    offline_public_cases_source: Any = None
+    offline_homework_mode: bool = False
     program_source: Any = None
     official_source: Any = None
     # These are set only by the trusted host after checking source approval or
@@ -78,6 +83,8 @@ class ToolPorts:
         if name == "methodologies":
             return get_sales_methodologies(args)
         if name == "cases":
+            if self.offline_homework_mode and self.offline_public_cases_source is not None:
+                return search_offline_public_references(args, source=self.offline_public_cases_source)
             return search_anonymized_cases(args, source=self.cases_source)
         if name == "programs":
             return get_program_evidence(args, source=self.program_source)
@@ -136,7 +143,7 @@ class V2SalesPipeline:
                                "undergraduate_tier", "university_raw", "major_raw",
                                "average_score", "score_raw", "score_band", "current_year", "grade",
                                "target_country", "target_university", "target_program_or_major",
-                               "intake_year"}
+                               "intake_year", "intake_batch"}
         education_context = {key: value for key, value in education.items() if key in education_allowlist}
         targets = student_record.get("targets", {})
         target_allowlist = {"countries", "universities", "programs_or_majors"}
@@ -235,7 +242,7 @@ class V2SalesPipeline:
 
     @staticmethod
     def _explicit_do_not_contact(text: str) -> bool:
-        return bool(re.search(r"(?:不要|别|请别)\s*(?:再)?\s*联系我|别再给我发(?:消息|信息)|\b(?:do\s+not|don't|stop)\s+(?:contact(?:ing)?|message|messaging|text(?:ing)?)\s+me\b", text, re.I))
+        return bool(re.search(r"(?:\u4e0d\u8981|\u522b|\u8bf7\u522b)\s*(?:\u518d)?\s*\u8054\u7cfb\u6211|\u522b\u518d\u7ed9\u6211\u53d1(?:\u6d88\u606f|\u4fe1\u606f)|\b(?:do\s+not|don't|stop)\s+(?:contact(?:ing)?|message|messaging|text(?:ing)?)\s+me\b", text, re.I))
 
     @staticmethod
     def _trace_status(tool_status: str) -> str:
@@ -335,6 +342,10 @@ class V2SalesPipeline:
                or returned.get(claim.get("program_evidence_id"), {}).get("source_type") != "official_program_record"
                for claim in claims):
             raise PolicyViolation("PROGRAM_CLAIM_WITHOUT_ADOPTED_EVIDENCE")
+        for claim in claims:
+            item = returned[claim["program_evidence_id"]].get("item", {})
+            if item.get("intake_batch") != claim.get("intake_batch"):
+                raise PolicyViolation("PROGRAM_CLAIM_BATCH_MISMATCH")
         checked = verify_program_claims(claims, official_source=self.tools.official_source)
         if checked.get("status") != "OK" or len(checked.get("data", [])) != len(claims):
             return checked, ["PROGRAM_VERIFICATION_UNAVAILABLE"]
@@ -357,7 +368,7 @@ class V2SalesPipeline:
         semantic = decision["content_contract"]["semantic_draft"]
         import re
         quoted_prices = {int(group) for pair in re.findall(
-            r"[¥￥$£]\s*(\d{3,6})|(?<!\d)(\d{3,6})\s*(?:元|块|人民币|RMB|CNY|USD|SGD|dollars?|pounds?)", semantic, re.I)
+            r"[¥￥$£]\s*(\d{3,6})|(?<!\d)(\d{3,6})\s*(?:\u5143|\u5757|\u4eba\u6c11\u5e01|RMB|CNY|USD|SGD|dollars?|pounds?)", semantic, re.I)
                          for group in pair if group}
         if quoted_prices and quoted_prices != {price}:
             raise PolicyViolation("APPROVED_CUSTOM_PRICE_MISMATCH")
@@ -377,6 +388,7 @@ class V2SalesPipeline:
                         claims.append({"claim_id": f"stale-{len(claims)+1}",
                                        "university": row["university"], "program": row["program"],
                                        "intake_year": row["intake_year"], "fact_key": fact_key,
+                                       **({"intake_batch": row["intake_batch"]} if "intake_batch" in row else {}),
                                        "expected_value": fact["value"],
                                        "program_evidence_id": row["evidence_id"]})
         return claims
@@ -386,12 +398,12 @@ class V2SalesPipeline:
         arabic = re.search(r"(?<!\d)(\d{3,6})(?!\d)", span)
         if arabic:
             return int(arabic.group(1))
-        wan = re.search(r"(?<!\d)(\d+(?:\.\d+)?)\s*万", span)
+        wan = re.search(r"(?<!\d)(\d+(?:\.\d+)?)\s*\u4e07", span)
         if wan:
             return int(float(wan.group(1)) * 10000)
-        digits = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
-                  "六": 6, "七": 7, "八": 8, "九": 9}
-        match = re.search(r"([一二两三四五六七八九])万([一二两三四五六七八九])?", span)
+        digits = {"\u4e00": 1, "\u4e8c": 2, "\u4e24": 2, "\u4e09": 3, "\u56db": 4, "\u4e94": 5,
+                  "\u516d": 6, "\u4e03": 7, "\u516b": 8, "\u4e5d": 9}
+        match = re.search(r"([\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d])\u4e07([\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d])?", span)
         if match:
             return digits[match.group(1)] * 10000 + (digits[match.group(2)] * 1000 if match.group(2) else 0)
         return None
@@ -433,25 +445,25 @@ class V2SalesPipeline:
             if candidate["category"] == "BUDGET" and type(value) is not int:
                 raise PolicyViolation("BUDGET_NORMALIZED_INTEGER_REQUIRED")
             if candidate["category"] == "BUDGET" and type(value) is int:
-                if re.search(r"(?:不是|并非|不代表|听说|据说|别人|朋友|她说|他说|\b(?:not\s+my\s+budget|someone\s+else(?:'s)?|i\s+heard|my\s+friend)\b)", span, re.I) or not re.search(
-                    r"(?:总共|总预算|预算|最多|上限|封顶|\b(?:my\s+)?(?:total\s+)?budget\b|\bat\s+most\b|\bceiling\b)", span, re.I):
+                if re.search(r"(?:\u4e0d\u662f|\u5e76\u975e|\u4e0d\u4ee3\u8868|\u542c\u8bf4|\u636e\u8bf4|\u522b\u4eba|\u670b\u53cb|\u5979\u8bf4|\u4ed6\u8bf4|\b(?:not\s+my\s+budget|someone\s+else(?:'s)?|i\s+heard|my\s+friend)\b)", span, re.I) or not re.search(
+                    r"(?:\u603b\u5171|\u603b\u9884\u7b97|\u9884\u7b97|\u6700\u591a|\u4e0a\u9650|\u5c01\u9876|\b(?:my\s+)?(?:total\s+)?budget\b|\bat\s+most\b|\bceiling\b)", span, re.I):
                     raise PolicyViolation("BUDGET_STATEMENT_NEEDS_HUMAN_CONFIRMATION")
                 if self._budget_amount_from_span(span) != value:
                     raise PolicyViolation("MEMORY_BUDGET_NORMALIZATION_MISMATCH")
             elif candidate["category"] == "DECISION_ROLE":
                 if not isinstance(value, str) or value not in span or re.search(
-                    r"(?:不是|并非|不确定|可能|也许|听说|据说)", span):
+                    r"(?:\u4e0d\u662f|\u5e76\u975e|\u4e0d\u786e\u5b9a|\u53ef\u80fd|\u4e5f\u8bb8|\u542c\u8bf4|\u636e\u8bf4)", span):
                     raise PolicyViolation("DECISION_ROLE_NEEDS_HUMAN_CONFIRMATION")
-                if candidate["key"] == "payer" and not re.search(r"(?:付款人是|付钱的是|由.{1,6}付钱|由.{1,6}付款)", span):
+                if candidate["key"] == "payer" and not re.search(r"(?:\u4ed8\u6b3e\u4eba\u662f|\u4ed8\u94b1\u7684\u662f|\u7531.{1,6}\u4ed8\u94b1|\u7531.{1,6}\u4ed8\u6b3e)", span):
                     raise PolicyViolation("PAYER_STATEMENT_NEEDS_HUMAN_CONFIRMATION")
-                if candidate["key"] == "decision_maker" and not re.search(r"(?:决定的人是|做决定的是|由.{1,6}决定)", span):
+                if candidate["key"] == "decision_maker" and not re.search(r"(?:\u51b3\u5b9a\u7684\u4eba\u662f|\u505a\u51b3\u5b9a\u7684\u662f|\u7531.{1,6}\u51b3\u5b9a)", span):
                     raise PolicyViolation("DECISION_MAKER_NEEDS_HUMAN_CONFIRMATION")
             elif not isinstance(value, str) or value not in span:
                 raise PolicyViolation("MEMORY_VALUE_NOT_SOURCE_BOUND")
             if candidate["category"] in {"BACKGROUND", "GOAL", "PREFERENCE", "COMMITMENT"}:
                 # A quoted value is not a positive customer statement when the local clause negates it.
                 before_value = span[:span.find(value)].rsplit("，", 1)[-1].rsplit("。", 1)[-1]
-                if re.search(r"(?:不是要|不需要|不想要|没有|并非|不确定|可能|也许|听说|据说)\s*$", before_value):
+                if re.search(r"(?:\u4e0d\u662f\u8981|\u4e0d\u9700\u8981|\u4e0d\u60f3\u8981|\u6ca1\u6709|\u5e76\u975e|\u4e0d\u786e\u5b9a|\u53ef\u80fd|\u4e5f\u8bb8|\u542c\u8bf4|\u636e\u8bf4)\s*$", before_value):
                     raise PolicyViolation("MEMORY_CANDIDATE_NEGATED_OR_AMBIGUOUS")
         return candidates
 
@@ -528,7 +540,17 @@ class V2SalesPipeline:
             evidence: dict[str, dict] = {}
             final_tool_results: list[dict] = []
             for name, args in requests:
-                if name == "cases":
+                if name == "programs" and (args.get("contract_version") == "sales-tools.v1.1"
+                                           or getattr(self.tools.program_source, "requires_live_official_check", False)):
+                    bound = bind_program_batch(args, self.store.get_student_snapshot(student_id))
+                    if bound is None:
+                        response = envelope("POLICY_BLOCKED", "official_program_record",
+                                            limitations=["CONFIRMED_EXACT_INTAKE_BATCH_REQUIRED"],
+                                            error_code="INVALID_REQUEST")
+                    else:
+                        args = bound
+                        response = self.tools.call(name, args)
+                elif name == "cases":
                     bound = bind_case_request(
                         args, self.store.get_student_snapshot(student_id), inbound["payload"]["raw_text"])
                     if bound is None:

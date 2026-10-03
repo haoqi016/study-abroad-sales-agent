@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlsplit
 
+from .program_batch import valid_batch
 from .common import approved_source, call_with_timeout, envelope, safe_public_text, timestamp
 
 SOURCE_TYPE = "official_program_record"
@@ -38,11 +39,17 @@ def _valid_request(request: Any) -> bool:
         return False
     query = request["query"]
     applicant = request["applicant_context"]
-    if request["contract_version"] != "sales-tools.v1" or not isinstance(query, dict) or set(query) != {"country", "university", "program_or_major", "intake_year", "requested_facts"}:
+    version = request["contract_version"]
+    query_keys = {"country", "university", "program_or_major", "intake_year", "requested_facts"}
+    if version == "sales-tools.v1.1":
+        query_keys.add("intake_batch")
+    if version not in {"sales-tools.v1", "sales-tools.v1.1"} or not isinstance(query, dict) or set(query) != query_keys:
         return False
     if not isinstance(applicant, dict) or set(applicant) != {"score_band", "degree_background"}:
         return False
     if query["country"] not in {None, "SG", "HK", "UK", "AU"} or type(query["intake_year"]) is not int or not 2020 <= query["intake_year"] <= 2100:
+        return False
+    if version == "sales-tools.v1.1" and not valid_batch(query["intake_batch"], query["intake_year"]):
         return False
     for key in ("university", "program_or_major"):
         if query[key] is not None and not safe_public_text(query[key], max_length=150):
@@ -88,7 +95,11 @@ def _project_fact(raw: Any, source: Any, date_now: datetime) -> tuple[dict, bool
         if not safe_public_text(raw["currency"], max_length=10):
             return {"value": None, "last_checked": None}, False, True
         result["currency"] = raw["currency"]
-    return result, date_now - checked > timedelta(days=365), False
+    if date_now - checked > timedelta(days=365):
+        # Preserve the check date for the required refresh notification, but
+        # never offer an expired value as a customer-facing official fact.
+        return {"value": None, "last_checked": checked.isoformat()}, True, True
+    return result, False, False
 
 
 def _project_record(raw: Any, query: dict, source: Any, date_now: datetime) -> dict | None:
@@ -97,6 +108,10 @@ def _project_record(raw: Any, query: dict, source: Any, date_now: datetime) -> d
     if raw.get("country") not in {"SG", "HK", "UK", "AU"} or type(raw.get("intake_year")) is not int:
         return None
     if not safe_public_text(raw.get("university"), max_length=150) or not safe_public_text(raw.get("program"), max_length=180):
+        return None
+    if raw.get("intake_batch") != query.get("intake_batch"):
+        return None
+    if "intake_batch" in raw and not valid_batch(raw["intake_batch"], raw["intake_year"]):
         return None
     if query["country"] and raw["country"] != query["country"]:
         return None
@@ -130,6 +145,7 @@ def _project_record(raw: Any, query: dict, source: Any, date_now: datetime) -> d
         "evidence_id": evidence_id,
         "university": raw["university"], "program": raw["program"],
         "country": raw["country"], "intake_year": raw["intake_year"],
+        **({"intake_batch": raw["intake_batch"]} if "intake_batch" in raw else {}),
         "facts": facts,
         "official_sources": [{"label": u["label"], "url": u["url"]} for u in urls],
         "freshness_status": "STALE" if stale else "UNKNOWN" if missing else "CURRENT",
@@ -139,19 +155,25 @@ def _project_record(raw: Any, query: dict, source: Any, date_now: datetime) -> d
 
 def get_program_evidence(request: dict, *, source: Any = None) -> dict:
     """No source means unavailable; this function never reads Application System."""
+    def response_envelope(*args, **kwargs):
+        response = envelope(*args, **kwargs)
+        if isinstance(request, dict) and request.get("contract_version") == "sales-tools.v1.1":
+            response["tool_version"] = "sales-tools.v1.1"
+        return response
+
     if not _valid_request(request):
-        return envelope("INVALID_REQUEST", SOURCE_TYPE, limitations=LIMITATIONS, error_code="INVALID_REQUEST")
+        return response_envelope("INVALID_REQUEST", SOURCE_TYPE, limitations=LIMITATIONS, error_code="INVALID_REQUEST")
     if not approved_source(source) or not callable(getattr(source, "search", None)) or not callable(getattr(source, "is_official_url", None)) or not getattr(source, "official_hosts", None) or not isinstance(getattr(source, "provenance_secret", None), bytes) or len(source.provenance_secret) < 32 or not isinstance(getattr(source, "snapshot_digest", None), str) or not re.fullmatch(r"[0-9a-f]{64}", source.snapshot_digest):
-        return envelope("UNAVAILABLE", SOURCE_TYPE, limitations=LIMITATIONS, error_code="APPROVED_PROGRAM_COPY_UNAVAILABLE")
+        return response_envelope("UNAVAILABLE", SOURCE_TYPE, limitations=LIMITATIONS, error_code="APPROVED_PROGRAM_COPY_UNAVAILABLE")
     try:
-        rows = call_with_timeout(lambda: source.search(request["query"].copy()), 1.0)
+        rows = call_with_timeout(lambda: source.search(request["query"].copy()), 5.0 if getattr(source, "requires_live_official_check", False) else 1.0)
         if not isinstance(rows, list):
             raise ValueError("invalid source result")
         date_now = datetime.now(timezone.utc)
         data = [item for raw in rows[:20] if (item := _project_record(raw, request["query"], source, date_now)) is not None][:5]
-        return envelope("OK" if data else "NO_RESULTS", SOURCE_TYPE, source_version=source.source_version, limitations=LIMITATIONS, data=data)
+        return response_envelope("OK" if data else "NO_RESULTS", SOURCE_TYPE, source_version=source.source_version, limitations=LIMITATIONS, data=data)
     except Exception:
-        return envelope("UNAVAILABLE", SOURCE_TYPE, source_version=source.source_version, limitations=LIMITATIONS, error_code="PROGRAM_SOURCE_UNAVAILABLE")
+        return response_envelope("UNAVAILABLE", SOURCE_TYPE, source_version=source.source_version, limitations=LIMITATIONS, error_code="PROGRAM_SOURCE_UNAVAILABLE")
 
 
 def program_freshness_actions(program_response: dict, verification_response: dict | None = None) -> dict:
