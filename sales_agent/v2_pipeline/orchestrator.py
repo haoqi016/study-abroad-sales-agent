@@ -28,6 +28,9 @@ from .policy import (
     validate_conversation, validate_decision,
 )
 from .providers import JSONProvider, ProviderError
+from .context_projection import (build_commercial_decision_view,
+                                 conversation_goal_from_decision, project_customer_history)
+from .conversation_style import select_style_shape
 
 
 # Only these fixed runtime codes may leave the store as diagnostic metadata.
@@ -63,6 +66,10 @@ _SAFE_TOOL_ERROR_CODES = {
     "PROGRAM_SOURCE_UNAVAILABLE", "OFFICIAL_SEARCH_UNAVAILABLE",
     "ADVANTAGES_CATALOG_UNAVAILABLE",
 }
+
+# A refresh-only official lookup needs the Program identity and field, while
+# the expired value stays withheld from Decision and Conversation content.
+_STALE_VALUE_WITHHELD = "STALE_PROGRAM_VALUE_WITHHELD"
 
 
 @dataclass(frozen=True)
@@ -123,14 +130,57 @@ class V2SalesPipeline:
 
     def __init__(self, *, store: V2RuntimeStore, decision_provider: JSONProvider,
                  conversation_provider: JSONProvider, tools: ToolPorts | None = None,
-                 pricing_policy: dict | None = None) -> None:
+                 pricing_policy: dict | None = None,
+                 style_shape_enabled: bool = False) -> None:
         self.store = store
         self.decision_provider = decision_provider
         self.conversation_provider = conversation_provider
         self.tools = tools or ToolPorts()
+        if type(style_shape_enabled) is not bool:
+            raise ValueError("style_shape_enabled_must_be_boolean")
+        self.style_shape_enabled = style_shape_enabled
         self.pricing_policy = deepcopy(pricing_policy or DEFAULT_PRICING_POLICY)
         if self.pricing_policy.get("approval_status") != "APPROVED" or self.pricing_policy.get("approved_by") != "OWNER":
             raise ValueError("pricing_policy_must_be_owner_approved")
+
+    @staticmethod
+    def _commercial_plan_gaps(decision: dict, student_raw_text: str) -> list[str]:
+        """Check a live model's strategy against this turn's exact student words.
+
+        An unknown blocker is preferable to an invented supporting quote.
+        Customer benefit is optional when no approved benefit can be stated;
+        when supplied, it must already be present in the content contract.
+        """
+        gaps: list[str] = []
+        if "program_claims" not in decision:
+            gaps.append("MODEL_DECISION_REQUIRED_FIELDS_MISSING")
+        strategy = decision.get("selected_strategy")
+        required = {"strategy_code", "reason", "purchase_blocker", "blocker_evidence_spans",
+                    "customer_benefit", "next_milestone"}
+        if (not isinstance(strategy, dict) or not required <= set(strategy)
+                or any(not isinstance(strategy[key], str) or not strategy[key].strip()
+                       for key in ("strategy_code", "reason", "purchase_blocker", "next_milestone"))
+                or not isinstance(strategy["customer_benefit"], str)
+                or not isinstance(strategy["blocker_evidence_spans"], list)
+                or any(not isinstance(span, str) or not span.strip()
+                       for span in strategy["blocker_evidence_spans"])):
+            gaps.append("MODEL_COMMERCIAL_STRATEGY_INCOMPLETE")
+            return gaps
+        spans = strategy["blocker_evidence_spans"]
+        if any(span not in student_raw_text for span in spans):
+            gaps.append("MODEL_BLOCKER_EVIDENCE_NOT_VERBATIM")
+        if not spans and strategy["purchase_blocker"] != "UNKNOWN":
+            gaps.append("MODEL_BLOCKER_EVIDENCE_MISSING")
+        benefit = strategy["customer_benefit"].strip()
+        if benefit:
+            content = decision.get("content_contract")
+            if (not isinstance(content, dict)
+                    or not isinstance(content.get("semantic_draft"), str)
+                    or benefit not in content["semantic_draft"]
+                    or not isinstance(content.get("must_include"), list)
+                    or benefit not in content["must_include"]):
+                gaps.append("MODEL_CUSTOMER_BENEFIT_NOT_REALIZED")
+        return gaps
 
     def _model_context(self, context: dict) -> dict:
         """Minimum authorized context; no names, contact IDs or hidden Gold."""
@@ -152,7 +202,10 @@ class V2SalesPipeline:
         supplied_paths.update(f"targets.{key}" for key in target_context)
         supplied_paths.update({"sales.stage", "sales.current_objection", "sales.contact_permission"})
         field_provenance = context["student_record_field_provenance"]
-        recent_history = context["customer_visible_history"][-8:]
+        history = project_customer_history(
+            context["customer_visible_history"],
+            latest_student_text=context["latest_student_raw_text"],
+        )
         confirmed_memory = [item for item in context["memory_items"] if item["epistemic_status"] != "AGENT_HYPOTHESIS"]
         unverified_hypotheses = [item for item in context["memory_items"] if item["epistemic_status"] == "AGENT_HYPOTHESIS"]
         observations = []
@@ -182,12 +235,15 @@ class V2SalesPipeline:
             "observations": observations,
             "inbound_interpretation_status": context["latest_inbound_interpretation_status"],
             "inbound_interpretation": context["latest_inbound_interpretation"],
-            "customer_visible_history": recent_history,
+            "customer_visible_history": history["customer_visible_history"],
+            "older_history_index": history["older_history_index"],
+            "older_key_original_quotes": history["older_key_original_quotes"],
+            "history_projection": history["history_projection"],
             "long_term_memory": {"confirmed_or_customer_stated": confirmed_memory,
                                  "unverified_hypotheses": unverified_hypotheses,
                                  "mandatory_memory_ids": context["mandatory_memory_ids"]},
             "working_memory": context["working_memory"],
-            "history_window_limit": 8,
+            "history_window_limit": history["history_projection"]["max_recent_messages"],
         }
 
     def _existing_run(self, *, student_id: str, conversation_id: str,
@@ -384,12 +440,16 @@ class V2SalesPipeline:
                 if row.get("freshness_status") != "STALE":
                     continue
                 for fact_key, fact in row.get("facts", {}).items():
-                    if isinstance(fact, dict) and isinstance(fact.get("value"), str):
+                    if isinstance(fact, dict) and (
+                        isinstance(fact.get("value"), str)
+                        or (fact.get("value") is None and isinstance(fact.get("last_checked"), str))
+                    ):
                         claims.append({"claim_id": f"stale-{len(claims)+1}",
                                        "university": row["university"], "program": row["program"],
                                        "intake_year": row["intake_year"], "fact_key": fact_key,
                                        **({"intake_batch": row["intake_batch"]} if "intake_batch" in row else {}),
-                                       "expected_value": fact["value"],
+                                       "expected_value": (fact["value"] if isinstance(fact.get("value"), str)
+                                                          else _STALE_VALUE_WITHHELD),
                                        "program_evidence_id": row["evidence_id"]})
         return claims
 
@@ -577,12 +637,25 @@ class V2SalesPipeline:
                 for evid, item in self._returned_evidence(response).items():
                     evidence[evid] = {"source_type": response["source_type"],
                                       "source_version": response.get("source_version"), "item": item}
-            decision = self.decision_provider.generate_json(
-                "decision", {"turn_context": model_context,
-                             "tool_results": final_tool_results,
-                             "available_evidence_ids": sorted(evidence),
-                             "pricing_policy": self.pricing_policy,
-                             "gold_policy_version": GOLD_POLICY_VERSION})
+            context_events = [event for event in self.store.list_events(student_id)
+                              if event["revision"] < context_event["revision"]]
+            corrected_outcomes = {event["payload"].get("corrects_event_id")
+                                  for event in context_events
+                                  if event["event_type"] == "COMMERCIAL_OUTCOME"
+                                  and event["payload"].get("corrects_event_id")}
+            active_outcome_ids = {event["event_id"] for event in context_events
+                                  if event["event_type"] == "COMMERCIAL_OUTCOME"
+                                  and event["event_id"] not in corrected_outcomes}
+            commercial_view = build_commercial_decision_view(
+                context=context, all_events=context_events,
+                memory_items=context["memory_items"], active_outcome_ids=active_outcome_ids)
+            decision_input = {"commercial_decision_view": commercial_view,
+                              "turn_context": model_context,
+                              "tool_results": final_tool_results,
+                              "available_evidence_ids": sorted(evidence),
+                              "pricing_policy": self.pricing_policy,
+                              "gold_policy_version": GOLD_POLICY_VERSION}
+            decision = self.decision_provider.generate_json("decision", decision_input)
             decision = dict(decision)
             if not {"normalized_meaning", "normalized_meaning_spans"} <= set(decision):
                 raise PolicyViolation("INBOUND_INTERPRETATION_FIELDS_MISSING")
@@ -596,8 +669,25 @@ class V2SalesPipeline:
                 for field in ("normalized_meaning", "normalized_meaning_spans", "hypotheses", "unknowns"):
                     if decision.get(field) != corrected[field]:
                         raise PolicyViolation("DECISION_CONFLICTS_WITH_HUMAN_INTERPRETATION")
-            if getattr(self.decision_provider, "require_complete_output", False) and "program_claims" not in decision:
-                raise PolicyViolation("MODEL_DECISION_REQUIRED_FIELDS_MISSING")
+            if getattr(self.decision_provider, "require_complete_output", False):
+                gaps = self._commercial_plan_gaps(decision, inbound["payload"]["raw_text"])
+                if gaps:
+                    # One internal repair before Decision or Draft persistence.
+                    # Reuse the same evidence; the model does not plan tools again.
+                    decision = dict(self.decision_provider.generate_json("decision", {
+                        **decision_input,
+                        "revision_feedback": {"reason_codes": gaps, "previous_decision": decision},
+                    }))
+                    gaps = self._commercial_plan_gaps(decision, inbound["payload"]["raw_text"])
+                    if gaps:
+                        raise PolicyViolation(*gaps)
+                    if not {"normalized_meaning", "normalized_meaning_spans"} <= set(decision):
+                        raise PolicyViolation("INBOUND_INTERPRETATION_FIELDS_MISSING")
+                    if prior_interpretation and prior_interpretation["actor"] == "SALESPERSON":
+                        corrected = prior_interpretation["payload"]
+                        for field in ("normalized_meaning", "normalized_meaning_spans", "hypotheses", "unknowns"):
+                            if decision.get(field) != corrected[field]:
+                                raise PolicyViolation("DECISION_CONFLICTS_WITH_HUMAN_INTERPRETATION")
             decision.setdefault("program_claims", [])
             decision.setdefault("memory_candidates", [])
             decision.update({"input_event_ids": observations,
@@ -624,10 +714,22 @@ class V2SalesPipeline:
             # discretion. A stale record also creates an internal DB notice.
             stale_claims = self._stale_program_claims(calls)
             verification_claims = list(decision["program_claims"])
+            used_claim_ids = {claim.get("claim_id") for claim in verification_claims
+                              if isinstance(claim, dict)}
+            for index, claim in enumerate(stale_claims, 1):
+                candidate = f"stale-refresh-{index}"
+                while candidate in used_claim_ids:
+                    candidate += "-next"
+                claim["claim_id"] = candidate
+                used_claim_ids.add(candidate)
             verification_claims.extend(stale_claims)
             verification_adopted = adopted | {claim["program_evidence_id"] for claim in stale_claims}
             verification, verification_errors = self._verify_claims(
                 verification_claims, returned=evidence, adopted=verification_adopted)
+            if any(claim["expected_value"] == _STALE_VALUE_WITHHELD for claim in stale_claims):
+                # A fresh page may reveal a new value, but the approved
+                # snapshot must be updated before that value can be used.
+                verification_errors = ["STALE_PROGRAM_REAPPROVAL_REQUIRED"]
             if len(verification_claims) > 20:
                 verification_errors = ["TOO_MANY_PROGRAM_CLAIMS_FOR_VERIFICATION"]
             notices, stale_handoff = self._persist_program_freshness(
@@ -686,11 +788,17 @@ class V2SalesPipeline:
                 result.reason_codes = warnings
                 return result
             self._gate(decision_event["event_id"], "PRE_CONVERSATION", [], "ALLOW", idempotency_key)
-            conversation = self.conversation_provider.generate_json(
-                "conversation", {"content_contract": decision["content_contract"],
-                                 "offer": decision["offer"],
-                                 "adopted_evidence": [evidence[x] for x in decision["evidence_ids"]],
-                                 "verified_program_claims": verification.get("data", []) if verification else []})
+            conversation_input = {
+                "conversation_goal": conversation_goal_from_decision(decision),
+                "content_contract": decision["content_contract"],
+                "offer": decision["offer"],
+                "adopted_evidence": [evidence[x] for x in decision["evidence_ids"]],
+                "verified_program_claims": verification.get("data", []) if verification else [],
+            }
+            if self.style_shape_enabled:
+                conversation_input["style_shape"] = select_style_shape(
+                    decision, inbound["payload"]["raw_text"])
+            conversation = self.conversation_provider.generate_json("conversation", conversation_input)
             messages = conversation.get("messages") if isinstance(conversation, dict) else None
             style = conversation.get("style_transformations", []) if isinstance(conversation, dict) else []
             if not isinstance(style, list):
@@ -819,7 +927,8 @@ class V2SalesPipeline:
             if verification and (verification.get("status") != "OK" or len(verification.get("data", [])) != len(claims) or any(
                 item.get("status") != "VERIFIED" for item in verification.get("data", []))):
                 return PipelineResult(status="HANDOFF", reason_codes=["PROGRAM_REVERIFICATION_REQUIRED"])
-            conversation = self.conversation_provider.generate_json("conversation", {
+            conversation_input = {
+                "conversation_goal": conversation_goal_from_decision(decision["payload"]),
                 "content_contract": decision["payload"]["content_contract"],
                 "offer": decision["payload"]["offer"],
                 "human_feedback": {"feedback_types": review["payload"]["feedback_types"],
@@ -827,7 +936,14 @@ class V2SalesPipeline:
                 "review_reflection": reflection["payload"],
                 "rejected_messages": draft["payload"]["messages"],
                 "verified_program_claims": verification.get("data", []) if verification else [],
-            })
+            }
+            if self.style_shape_enabled:
+                inbound_ids = [event_id for event_id in decision["payload"].get("input_event_ids", [])
+                               if (event := self.store.get_event(event_id)) and event["event_type"] == "INBOUND_RECEIVED"]
+                latest_raw = (self.store.get_event(inbound_ids[-1])["payload"]["raw_text"]
+                              if inbound_ids else "")
+                conversation_input["style_shape"] = select_style_shape(decision["payload"], latest_raw)
+            conversation = self.conversation_provider.generate_json("conversation", conversation_input)
             messages = conversation.get("messages") if isinstance(conversation, dict) else None
             style = conversation.get("style_transformations", []) if isinstance(conversation, dict) else []
             if not isinstance(style, list):

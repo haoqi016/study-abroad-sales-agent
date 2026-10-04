@@ -23,6 +23,18 @@ class OfflineOnlyError(ValueError):
     """An operation is outside this synthetic-only boundary."""
 
 
+_SALES_STAGES = frozenset({
+    "NEW", "CONSULTING", "QUALIFIED", "PRICE_OBJECTION", "LIKELY_TO_PAY",
+    "WAITING_STUDENT", "WAITING_DECISION_MAKER", "READY_TO_SIGN", "WON",
+    "LOST", "DO_NOT_CONTACT",
+})
+
+
+def _validate_sales_stage(value: object) -> None:
+    if not isinstance(value, str) or value not in _SALES_STAGES:
+        raise OfflineOnlyError("invalid_sales_stage")
+
+
 def _text(value: object, name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise OfflineOnlyError(f"{name}_required")
@@ -228,6 +240,7 @@ class OfflineWorkspaceApi:
             raise OfflineOnlyError("synthetic_display_name_required")
         student_id, conversation_id = uuid4().hex, uuid4().hex
         sales = deepcopy(record.get("sales") or {})
+        _validate_sales_stage(sales.get("stage", "NEW"))
         if (record.get("source") or {}).get("channel", "OTHER") not in {"XIAOHONGSHU", "WECHAT", "REFERRAL", "OTHER"}:
             raise OfflineOnlyError("invalid_source_channel")
         if sales.get("contact_permission", "UNKNOWN") not in {"UNKNOWN", "ALLOWED", "LIMITED", "DO_NOT_CONTACT"}:
@@ -288,6 +301,7 @@ class OfflineWorkspaceApi:
             snapshot["display_name"] = name
         for key in nested:
             snapshot[key].update(deepcopy(patch.get(key) or {}))
+        _validate_sales_stage(snapshot["sales"].get("stage"))
         if snapshot["source"].get("channel") not in {"XIAOHONGSHU", "WECHAT", "REFERRAL", "OTHER"}:
             raise OfflineOnlyError("invalid_source_channel")
         if snapshot["sales"].get("contact_permission") not in {"UNKNOWN", "ALLOWED", "LIMITED", "DO_NOT_CONTACT"}:
@@ -353,9 +367,9 @@ class OfflineWorkspaceApi:
             "drafts": [{"draft_id": draft["event_id"], "revision": draft["payload"]["draft_revision"],
                         "messages": draft["payload"]["messages"], "text": draft["payload"]["rendered_text"],
                         "status": self._effective_draft_status(draft)} for draft in drafts],
-            "approved_draft_id": next((draft["event_id"] for draft in reversed(drafts)
-                                       if self._store.draft_status(draft["event_id"]) == "APPROVED"
-                                       and not self._newer_inbound(draft)), None),
+            "approved_draft_id": (latest["event_id"] if latest
+                                  and view["sales"]["contact_permission"] == "ALLOWED"
+                                  and self._effective_draft_status(latest) == "APPROVED" else None),
             "sent": [event for event in events if event["event_type"] == "HUMAN_SENT"],
             "commercial_ledger": self._store.commercial_ledger(student_id),
             "progress_assessments": [event for event in events if event["event_type"] == "PROGRESS_ASSESSMENT"],

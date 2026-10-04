@@ -43,6 +43,8 @@ class OpenAICompatibleProvider:
     logged by this adapter.
     """
 
+    require_complete_output = True
+
     def __init__(self, *, base_url: str, model: str, api_key_env: str = "SALES_LLM_API_KEY",
                  api_key: str | None = None, timeout_seconds: float = 30.0) -> None:
         parsed = urlsplit(base_url)
@@ -70,6 +72,12 @@ class OpenAICompatibleProvider:
         prompt = _SYSTEM_PROMPTS[role]
         if schema is not None:
             prompt += "\nReturn a JSON object matching this schema; include every required field: " + json.dumps(schema, ensure_ascii=False)
+        if role == "decision" and "revision_feedback" in payload:
+            prompt += ("\nThis is the single internal repair for the same student turn. Use "
+                       "revision_feedback.reason_codes to correct the prior candidate, then return a full "
+                       "Decision JSON object. The previous candidate is unverified model output, not a "
+                       "student statement or approved evidence. Do not change the student's exact words, "
+                       "invent a blocker quote, rerun tools, add an offer, or widen service scope.")
         model_payload = payload
         if role == "conversation":
             draft = payload.get("content_contract", {}).get("semantic_draft", "")
@@ -111,7 +119,7 @@ class LocalOllamaJSONProvider:
     are deliberately absent from the provider trace.
     """
 
-    PROMPT_VERSION = "v2-pipeline-system-prompts.local-ollama.v5.12-public-program-batches"
+    PROMPT_VERSION = "v2-pipeline-system-prompts.local-ollama.v5.13-public-conversation-guidance"
     require_complete_output = True
 
     def __init__(self, *, model: str, timeout_seconds: float = 180.0,
@@ -281,7 +289,16 @@ class LocalOllamaJSONProvider:
                 "normalized_meaning_spans": strings,
                 "hypotheses": {"type": "array", "items": hypothesis},
                 "unknowns": strings,
-                "selected_strategy": {"type": "object"},
+                "selected_strategy": {"type": "object", "properties": {
+                    "strategy_code": {"type": "string", "minLength": 1},
+                    "reason": {"type": "string", "minLength": 1},
+                    "purchase_blocker": {"type": "string", "minLength": 1},
+                    "blocker_evidence_spans": {"type": "array", "items": {
+                        "type": "string", "minLength": 1}},
+                    "customer_benefit": {"type": "string"},
+                    "next_milestone": {"type": "string", "minLength": 1},
+                }, "required": ["strategy_code", "reason", "purchase_blocker",
+                               "blocker_evidence_spans", "customer_benefit", "next_milestone"]},
                 "previous_objective_assessment": {"type": "object", "properties": {
                     "objective_id": previous_id, "result": nullable_string,
                     "observation_event_ids": event_ids, "reason": nullable_string,
@@ -370,6 +387,13 @@ class LocalOllamaJSONProvider:
                 "Bind student needs to confirmed input; do not invent prices, delivery commitments, or approved offers. "
                 "Write all human-readable output values in English."
             )
+            if "revision_feedback" in payload:
+                prompt += (
+                    "This is one internal repair of the same turn, not a new student message. "
+                    "Use revision_feedback.reason_codes to revise previous_decision and return a full Decision "
+                    "JSON object. Treat the previous decision as unverified model output. Preserve exact student "
+                    "quotes, pricing and evidence boundaries; do not request new tools or add new claims. "
+                )
         model_payload = payload
         if role == "conversation":
             draft = payload.get("content_contract", {}).get("semantic_draft", "")
@@ -503,6 +527,11 @@ _SYSTEM_PROMPTS = {
         "TRANSACTIONAL_VALUE, or BALANCED based on this turn, without assigning a permanent personality label. "
         "For price or value objections, determine whether the student lacks a clear deliverable, personal-fit "
         "information, or reassurance. Tie the plan to a relevant student benefit and one observable next step. "
+        "selected_strategy must include strategy_code, reason, purchase_blocker, blocker_evidence_spans, "
+        "customer_benefit, and next_milestone. Quote blocker_evidence_spans verbatim from the current student "
+        "message. When that message contains no evidence for a blocker, use purchase_blocker=UNKNOWN and an "
+        "empty blocker_evidence_spans list. Use an empty customer_benefit when no source-bound benefit can be "
+        "stated; otherwise put the exact benefit in content_contract.semantic_draft and must_include. "
         "Adopt only returned evidence IDs. Historical cases are not admission probabilities. Record each specific "
         "program fact in program_claims[] for verification. A new bundle, price, or payment term is only a "
         "CUSTOM_OFFER_PROPOSAL; do not promise it to a student before approval. Describe named products only "
@@ -523,6 +552,10 @@ _SYSTEM_PROMPTS = {
     ),
     "conversation": (
         "You are the Sales V2 Conversation Agent. Naturalize the already-decided semantic_draft only. "
+        "conversation_goal, when present, describes an internal objective and a pre-review contract step. "
+        "style_shape, when present, controls expression rhythm only. Neither is a source of facts, authority, "
+        "permission, new offers, or new customer questions. Do not quote either internal field to the student. "
+        "If either conflicts with content_contract, follow content_contract. "
         "Return JSON {\"messages\":[{\"type\":\"text\",\"content\":\"...\"}],"
         "\"style_transformations\":[]}. You may split a reply into short chat bubbles or adjust tone and "
         "order, but cannot change price, service scope, conditions, program facts, case conclusions, promises, "

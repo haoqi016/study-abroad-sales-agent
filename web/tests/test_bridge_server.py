@@ -24,6 +24,55 @@ class BridgeTests(unittest.TestCase):
             "demo_only": True, "display_name": "DEMO Student",
             "sales": {"contact_permission": "ALLOWED"}})
 
+    def test_sales_stage_is_validated_on_create_and_update(self):
+        for stage in ("CLOSED", "", None, 42):
+            with self.subTest(stage=stage), self.assertRaisesRegex(
+                OfflineOnlyError, "invalid_sales_stage"
+            ):
+                dispatch(self.api, "POST", "/api/students", {
+                    "demo_only": True, "display_name": "DEMO Student",
+                    "sales": {"stage": stage, "contact_permission": "ALLOWED"},
+                })
+        student = self.create()
+        sid = student["student_id"]
+        self.assertEqual(student["sales"]["stage"], "NEW")
+        with self.assertRaisesRegex(OfflineOnlyError, "invalid_sales_stage"):
+            dispatch(self.api, "PUT", f"/api/students/{sid}", {
+                "demo_only": True, "expected_revision": student["revision"],
+                "sales": {"stage": "CLOSED"},
+            })
+        self.assertEqual(self.api.getWorkspace(sid)["sales"]["stage"], "NEW")
+        updated = dispatch(self.api, "PUT", f"/api/students/{sid}", {
+            "demo_only": True, "expected_revision": student["revision"],
+            "sales": {"stage": "QUALIFIED"},
+        })
+        self.assertEqual(updated["sales"]["stage"], "QUALIFIED")
+
+    def test_contact_permission_blocks_exposing_an_approved_draft(self):
+        student = self.create()
+        sid = student["student_id"]
+        path = f"/api/students/{sid}"
+        dispatch(self.api, "POST", path + "/inbound", {
+            "demo_only": True, "raw_text": "DEMO: I need help with the application.",
+        })
+        dispatch(self.api, "POST", path + "/decision", {"demo_only": True})
+        approved = dispatch(self.api, "POST", path + "/approve", {"demo_only": True})
+        self.assertEqual(approved["draft_status"], "APPROVED")
+        self.assertEqual(approved["approved_draft_id"], approved["drafts"][-1]["draft_id"])
+
+        limited = dispatch(self.api, "PUT", path, {
+            "demo_only": True, "expected_revision": approved["revision"],
+            "sales": {"contact_permission": "LIMITED"},
+        })
+        self.assertEqual(limited["draft_status"], "APPROVED")
+        self.assertIsNone(limited["approved_draft_id"])
+        self.assertEqual(limited["sent"], [])
+        with self.assertRaisesRegex(OfflineOnlyError, "explicit_contact_permission_required"):
+            dispatch(self.api, "POST", path + "/actual-sent", {
+                "demo_only": True, "confirmed_external_send": True,
+                "actual_sent_text": "DEMO: sent externally",
+            })
+
     def test_routing_and_synthetic_boundary(self):
         with self.assertRaises(OfflineOnlyError):
             dispatch(self.api, "POST", "/api/students", {"display_name": "DEMO Student"})

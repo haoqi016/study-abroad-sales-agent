@@ -55,6 +55,31 @@ _UNAPPROVED_SERVICE_CAPABILITY = re.compile(
 _ABSTRACT_REQUIRED_CONTENT = re.compile(r"^(?:\u89e3\u91ca|\u5f3a\u8c03|\u8bf4\u660e|\u7a81\u51fa|\u8bb2\u6e05|\u544a\u77e5|\u8be2\u95ee|\u5c55\u793a|\u4f53\u73b0|\u9610\u8ff0|\u63cf\u8ff0|\u63d0\u53ca|\u8868\u8fbe|(?:explain|emphasize|describe|highlight|tell|ask|show|mention)\b)", re.I)
 _CASE_CLAIM = re.compile(r"(?:\u6211\u4eec|\u672c\u673a\u6784|\u8001\u5e08).{0,18}(?:\u8f85\u5bfc\u8fc7|\u7ecf\u624b\u8fc7|\u6709|\u89c1\u8fc7|\u79ef\u7d2f).{0,18}(?:\u6848\u4f8b|\u76f8\u4f3c\u5b66\u751f|\u540c\u80cc\u666f\u5b66\u751f)|\b(?:we|our\s+(?:team|advisors?))\b.{0,40}\b(?:worked\s+with|helped|have)\b.{0,35}\b(?:cases?|students?|applicants?)\b", re.I)
 _SPECIFIC_CASE = re.compile(r"(?:\u4e0e\u4f60|\u8ddf\u4f60|\u548c\u4f60|\u76f8\u4f3c|\u76f8\u8fd1|(?<!\u4e0d)\u540c\u80cc\u666f|(?<!\u4e0d)\u540c\u5c42\u7ea7|\u540c\u5747\u5206|NTU|NUS|\u6e2f\u5927)|\b(?:similar\s+to\s+you|similar\s+background|same\s+(?:background|grade|score)|NTU|NUS)\b", re.I)
+_EXTERNAL_CASE_SOURCE_TYPE = "external_public_reference_unverified"
+_EXTERNAL_CASE_TEXT = re.compile(r"\b(?:case|reference|offer|admission|acceptance|rejection|waitlist)\b", re.I)
+_EXTERNAL_CASE_ATTRIBUTION = re.compile(
+    r"\b(?:(?:external(?:\s+public)?|third[- ]party)\s+(?:reference|case|example)|"
+    r"public\s+platform\s+(?:reference|case|reports?))\b", re.I)
+_EXTERNAL_CASE_OUTCOME = re.compile(r"\b(?:offer|admission|admitted|accepted|acceptance|rejected|rejection|waitlisted|waitlist)\b", re.I)
+_EXTERNAL_OUTCOME_CAVEAT = re.compile(r"\b(?:unverified|not\s+(?:independently\s+)?verified|self[- ]reported)\b", re.I)
+_INSTITUTION_CASE_OWNERSHIP = re.compile(
+    r"\b(?:our\s+(?:cases?|students?|applicants?)|one\s+of\s+our\s+(?:cases?|students?|applicants?)|"
+    r"(?:we|our\s+(?:team|advisors?|institution))\b.{0,40}"
+    r"\b(?:worked\s+with|helped|served|handled|guided|secured|got|have)\b.{0,35}"
+    r"\b(?:cases?|students?|applicants?|offers?))\b", re.I)
+_EXTERNAL_CASE_PREDICTION = re.compile(
+    r"\b(?:your\s+(?:admission\s+)?chances?\s+(?:are|is)\s+(?:high|good|strong)|"
+    r"you\s+(?:are\s+likely|will\s+probably)\s+(?:be\s+)?(?:admitted|accepted|get\s+an?\s+offer)|"
+    r"(?:high|strong)\s+(?:admission\s+)?probability\s+for\s+you|"
+    r"this\s+(?:case|reference)\s+(?:shows?|means?)\s+(?:you|your\s+chances?))\b", re.I)
+_OVERSTATED_SERVICE_SCOPE = re.compile(
+    r"\b(?:we|our\s+(?:team|advisors?))\b.{0,18}"
+    r"\b(?:handle|manage|take\s+care\s+of|do)\b.{0,16}"
+    r"\b(?:every\s+step|the\s+entire\s+(?:application\s+)?process|the\s+whole\s+application)\b", re.I)
+_STUDENT_PARTICIPATION = re.compile(
+    r"\b(?:you\s+(?:still\s+)?(?:need\s+to|must|will\s+need\s+to)|please)\s+"
+    r"(?:provide|confirm|share|send)\b.{0,55}"
+    r"\b(?:documents?|materials?|information|details)\b", re.I)
 _PROGRAM_FACT = re.compile(
     r"(?:\u9879\u76ee|\u4e13\u4e1a|\u5b66\u6821|\u9662\u6821|NTU|NUS|\u6e2f\u5927|\u6e2f\u4e2d\u6587|\u65b0\u56fd\u7acb|\u5357\u6d0b\u7406\u5de5|university|school|program|course)"
     r".{0,50}(?:\u622a\u6b62|\u5b66\u8d39|\u8bed\u8a00\u8981\u6c42|\u96c5\u601d|IELTS|\u6258\u798f|\u5747\u5206\u8981\u6c42|\u5148\u4fee|\u8bfe\u7a0b|"
@@ -230,12 +255,32 @@ def validate_decision(context: dict, decision: dict, returned: dict[str, dict],
     if _UNAPPROVED_URGENCY.search(text):
         raise PolicyViolation("UNAPPROVED_URGENCY")
     case_ids = {key for key, item in returned.items() if item["source_type"] == "anonymized_historical_case"}
+    external_case_ids = {key for key, item in returned.items()
+                         if item["source_type"] == _EXTERNAL_CASE_SOURCE_TYPE}
+    adopted = set(decision["evidence_ids"])
+    if _EXTERNAL_CASE_ATTRIBUTION.search(text) and not adopted & external_case_ids:
+        raise PolicyViolation("EXTERNAL_CASE_EVIDENCE_REQUIRED")
+    if adopted & external_case_ids:
+        # Synthetic public references neither prove an institutional service
+        # relationship nor establish a verified admission outcome.
+        if adopted & case_ids:
+            raise PolicyViolation("MIXED_CASE_PROVENANCE_UNSUPPORTED")
+        if _EXTERNAL_CASE_TEXT.search(text) and not _EXTERNAL_CASE_ATTRIBUTION.search(text):
+            raise PolicyViolation("EXTERNAL_CASE_ATTRIBUTION_REQUIRED")
+        if _INSTITUTION_CASE_OWNERSHIP.search(text):
+            raise PolicyViolation("EXTERNAL_CASE_NOT_INSTITUTION_SERVED")
+        if _EXTERNAL_CASE_OUTCOME.search(text) and not _EXTERNAL_OUTCOME_CAVEAT.search(text):
+            raise PolicyViolation("EXTERNAL_CASE_OUTCOME_UNVERIFIED")
+        if _EXTERNAL_CASE_ATTRIBUTION.search(text) and not _EXTERNAL_OUTCOME_CAVEAT.search(text):
+            raise PolicyViolation("EXTERNAL_CASE_UNVERIFIED_CAVEAT_REQUIRED")
+        if _EXTERNAL_CASE_PREDICTION.search(text):
+            raise PolicyViolation("EXTERNAL_CASE_PREDICTION_UNSUPPORTED")
     advantage_ids = {key for key, item in returned.items() if item["source_type"] == "approved_advantage"
                      and item["item"].get("advantage_id") == "ADV-001"}
     case_kind = _case_claim_kind(text)
-    if case_kind == "SPECIFIC" and not set(decision["evidence_ids"]) & case_ids:
+    if case_kind == "SPECIFIC" and not adopted & case_ids:
         raise PolicyViolation("UNSUPPORTED_CASE_CLAIM")
-    if case_kind == "GENERAL" and not set(decision["evidence_ids"]) & (case_ids | advantage_ids):
+    if case_kind == "GENERAL" and not adopted & (case_ids | advantage_ids):
         raise PolicyViolation("UNSUPPORTED_CASE_CLAIM")
     if _has_specific_program_fact(text) and not decision.get("program_claims"):
         raise PolicyViolation("PROGRAM_FACT_REQUIRES_CLAIM_RECORD")
@@ -301,6 +346,10 @@ def validate_conversation(decision: dict, messages: list[dict], *, verified_clai
     if not text.strip():
         raise PolicyViolation("CONVERSATION_TEXT_REQUIRED")
     base = decision["content_contract"]["semantic_draft"]
+    if _OVERSTATED_SERVICE_SCOPE.search(text) and not _OVERSTATED_SERVICE_SCOPE.search(base):
+        raise PolicyViolation("CONVERSATION_OVERSTATED_SCOPE")
+    if _STUDENT_PARTICIPATION.search(base) and not _STUDENT_PARTICIPATION.search(text):
+        raise PolicyViolation("CONVERSATION_DROPPED_STUDENT_PARTICIPATION")
     if _product_references(text) != _product_references(base):
         raise PolicyViolation("CONVERSATION_CHANGED_PRODUCT_CLAIM")
     if _product_c_scope_exceeded(text):
@@ -317,6 +366,19 @@ def validate_conversation(decision: dict, messages: list[dict], *, verified_clai
         raise PolicyViolation("CONVERSATION_ADDED_CASE_CLAIM")
     if _case_claim_kind(text) == "SPECIFIC" and _case_claim_kind(base) != "SPECIFIC":
         raise PolicyViolation("CONVERSATION_UPGRADED_CASE_CLAIM")
+    if _EXTERNAL_CASE_ATTRIBUTION.search(text) and not _EXTERNAL_CASE_ATTRIBUTION.search(base):
+        raise PolicyViolation("CONVERSATION_ADDED_EXTERNAL_CASE")
+    if _EXTERNAL_CASE_ATTRIBUTION.search(base):
+        if not _EXTERNAL_CASE_ATTRIBUTION.search(text):
+            raise PolicyViolation("CONVERSATION_DROPPED_EXTERNAL_ATTRIBUTION")
+        if _INSTITUTION_CASE_OWNERSHIP.search(text):
+            raise PolicyViolation("CONVERSATION_CHANGED_EXTERNAL_CASE_SOURCE")
+        if _EXTERNAL_CASE_OUTCOME.search(text) and not _EXTERNAL_OUTCOME_CAVEAT.search(text):
+            raise PolicyViolation("CONVERSATION_UNVERIFIED_EXTERNAL_OUTCOME")
+        if not _EXTERNAL_OUTCOME_CAVEAT.search(text):
+            raise PolicyViolation("CONVERSATION_DROPPED_EXTERNAL_CAVEAT")
+        if _EXTERNAL_CASE_PREDICTION.search(text):
+            raise PolicyViolation("CONVERSATION_ADDED_EXTERNAL_PREDICTION")
     for _rule_name, pattern, _required_ids in _ADVANTAGE_CLAIMS:
         if pattern.search(text) and not pattern.search(base):
             raise PolicyViolation("CONVERSATION_ADDED_ADVANTAGE_CLAIM")

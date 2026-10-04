@@ -24,6 +24,15 @@ flowchart LR
 - Deterministic **policy Gates** check the decision and draft. An unapproved custom offer needs a separate human approval and a new decision.
 - The **event store** keeps inbound text, context, decisions, drafts, reviews, approvals, and a human-entered record of what was actually sent distinct. A draft or approval is never itself a send.
 
+### One turn in code order
+
+1. The runtime assembles the latest student message, permitted snapshot fields and their provenance, current state, long-term memory, prior objective, and actual customer-visible history. The model projection keeps a **contiguous recent tail of at most 16 messages and about 3,000 characters**; the newest message remains exact even if it alone exceeds that budget. Older messages become a source-linked topic index of at most eight entries plus up to two short, exact student quotes for selected signals. That index is a navigation aid, not a verified summary or a replacement for the source events. Internal drafts and reviews do not become customer-visible history. See [`context_projection.py`](sales_agent/v2_pipeline/context_projection.py) and [`orchestrator.py`](sales_agent/v2_pipeline/orchestrator.py).
+2. The Decision stage first makes a `tool_plan` and can request up to three approved, read-only tool calls. The tools cover sales methods, advantage cards, anonymized cases, and programme facts. A source that is absent, unapproved, stale, or out of scope cannot support a customer claim. The default scripted browser demo requests no tools; public case and programme databases are not bundled here.
+3. Before the Decision call, a separate commercial view projects **recorded observations** such as the latest raw message, text actually recorded as sent, source-linked replies, and self-reported outcomes. It labels the previous agent's purchase-blocker theory and progress assessment as unverified working judgment. An event link does not prove causation, and an operator-entered outcome is not an independently verified payment or conversion. The Decision stage uses this view and any returned tool evidence to propose the current short-term objective, action, and content contract together.
+4. The Conversation stage receives the content contract, adopted evidence, verified programme claims, and an internal cue for the proposed next step from the pre-review content contract. An optional, fact-free tone and message-rhythm cue exists but is **off by default**. Neither cue authorizes a new fact, question, offer, or customer commitment. Pre- and post-conversation Gates then route the result to human review or a safe stop/handoff. A human records an actual external send separately.
+
+Only synthetic fixtures and explicitly configured, approved sources belong in this workflow. The public evaluation set is separate from private Owner Gold and holdout records; no private student data, raw Cases database, programme approval bundle, credential, or provider trace is included.
+
 ## Code in this repository
 
 The repository contains the V2 offline architecture and coursework fixtures:
@@ -64,7 +73,7 @@ The [evaluation guide](evals/README.md) explains the English development cases, 
 
 The security and notification packages are standalone, opt-in boundaries. They use injected identity, directory, storage, and transport interfaces and are not connected to the browser bridge. Their SDK stubs and synthetic tests do not establish deployed authentication, cloud configuration, push delivery, or real-student readiness. Run the focused checks with `python3 -m unittest tests.test_v2_security_sync tests.test_v2_security_sync_data tests.test_v2_security_sync_firebase tests.test_v2_notification_sync -v`.
 
-The [cost analysis](analysis/COST_ANALYSIS.md) compares a zero-model rule/template baseline (B0), a one-call baseline (B1), and the V2 multi-stage path (B2). Its prices, tokens, handling times, volume, fixed costs, build effort and acceptance rates are **assumptions**, not observed spend or savings. Reproduce its arithmetic with `python3 analysis/cost_model.py` and `python3 -m unittest analysis.test_cost_model -v`.
+The [cost analysis](analysis/COST_ANALYSIS.md) compares a zero-model rule/template baseline (B0), a one-call baseline (B1), and a nominal three-call V2 path (B2). Its prices, tokens, handling times, volume, fixed costs, build effort and acceptance rates are **assumptions**, not observed spend or savings. An early stop, review revision, retry, or bounded repair can change actual calls; the modeled B2 total is not a runtime cost ceiling. Reproduce its arithmetic with `python3 analysis/cost_model.py` and `python3 -m unittest analysis.test_cost_model -v`.
 
 ## Current status
 

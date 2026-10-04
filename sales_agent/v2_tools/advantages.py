@@ -65,7 +65,7 @@ def select_approved_advantages(
                 continue
             if "GLOBAL" not in item["regions"] and region not in item["regions"]:
                 continue
-            if item["advantage_id"] == "ADV-007" and not approved_case_evidence:
+            if "CASE_EVIDENCE" in item["tags"] and not approved_case_evidence:
                 continue
             if item["advantage_id"] in {"ADV-003", "ADV-006", "ADV-008"} and not service_available:
                 continue
