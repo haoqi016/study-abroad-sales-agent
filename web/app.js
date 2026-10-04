@@ -68,6 +68,30 @@ function renderWalkthrough(w) {
   return `<section class="walkthrough-player" aria-label="Scripted walkthrough"><div class="walkthrough-top"><span class="eyebrow">Scripted example · Step ${tour.step + 1} of ${steps.length}</span><div class="walkthrough-controls"><button type="button" class="text-button" data-action="walkthrough-replay">Replay</button>${tour.step < steps.length - 1 ? `<button type="button" class="text-button" data-action="walkthrough-toggle">${tour.playing ? 'Pause' : 'Continue'}</button>` : ''}</div></div><div aria-live="polite"><h2>${text(title)}</h2><p>${text(explanation)}</p><blockquote>${text(evidence || 'No evidence available')}</blockquote></div><ol class="walkthrough-progress" aria-label="Walkthrough progress">${steps.map((step, index) => `<li class="${index === tour.step ? 'current' : ''}" ${index === tour.step ? 'aria-current="step"' : ''}>${index + 1}</li>`).join('')}</ol></section>`;
 }
 
+function workflowStatus(w) {
+  if (w.sales.contact_permission === 'DO_NOT_CONTACT') return 'Contact stopped';
+  if (w.has_pending_offer) return 'Custom offer needs human approval';
+  const draft = w.drafts.at(-1);
+  if (draft?.status === 'PENDING_REVIEW') return 'Reply draft awaiting human review';
+  if (draft?.status === 'APPROVED') return 'Approved draft · not sent';
+  if (draft?.status === 'STALE') return 'New message recorded · previous draft is stale';
+  if (draft?.status === 'CHANGES_REQUESTED') return 'Changes requested · generate a new draft';
+  if (draft?.status === 'SENT') return 'Human external send recorded';
+  if (w.events.some(event => event.event_type === 'INBOUND_RECEIVED')) return 'Student message recorded · reply needed';
+  return 'Ready for a student message';
+}
+
+function renderInputWorkflow(w) {
+  const stopped = w.sales.contact_permission === 'DO_NOT_CONTACT';
+  const draft = w.drafts.at(-1);
+  const showReply = ['PENDING_REVIEW', 'APPROVED'].includes(draft?.status);
+  const reply = draft?.messages?.filter(message => message.type === 'text').map(message => message.content).join(' ');
+  const modeNote = remoteModel() ? 'Uses the configured remote API. A failed model call will not be replaced by a sample reply.' :
+    localModel() ? 'Uses the configured local model. A failed model call will not be replaced by a sample reply.' :
+    'Offline scripted mode produces a fixed sample reply. To test model inference, start the bridge with a model provider.';
+  return `<section class="panel inputs-panel"><div class="section-heading"><h2>Continue workflow</h2><span class="section-kicker">Student words and internal notes stay separate</span></div><div class="dual-input"><form id="inbound-form" class="input-card student-input"><h3>Student message</h3><p>Enter the student's exact words. They are stored unchanged, then used for the next decision and reply draft.</p><label>Student exact words<textarea name="raw_text" rows="3" required placeholder="Example: I plan to apply to Singapore, but I am not sure which part of my application I need help with."></textarea></label><label>Time received<input name="occurred_at" type="datetime-local"></label><button type="submit" class="button primary">${stopped ? 'Record student message' : 'Record message and generate reply'}</button><small class="helper">${modeNote}</small></form><form id="internal-form" class="input-card internal-input"><h3>Discuss with Agent</h3><p>Internal feedback for the Agent is not treated as a student message or customer fact.</p><label>Internal note<textarea name="raw_text" rows="3" required placeholder="Example: this sounds stiff; explain the value first"></textarea></label><button type="submit" class="button">Record internal note</button></form></div><div id="latest-turn-result" class="turn-result" tabindex="-1"><div class="turn-result-heading"><span class="eyebrow">Workflow status</span><strong>${text(workflowStatus(w))}</strong></div>${showReply ? `<div class="turn-reply"><span class="eyebrow">${modelMode() ? 'Agent reply draft' : 'Scripted sample reply'}</span><blockquote>${text(reply || 'See the full draft below.')}</blockquote><small>Draft only · not sent to the student</small></div>` : ''}${showReply && w.decision?.action_plan?.selected_action ? `<p class="turn-action">Next action: ${text(w.decision.action_plan.selected_action)}</p>` : ''}</div></section>`;
+}
+
 function renderDetail() {
   const w = state.workspace;
   if (!w) return shell('<div class="empty-state"><h1>No student selected</h1><button class="button" data-action="nav-students">Back to student list</button></div>');
@@ -77,7 +101,7 @@ function renderDetail() {
   const offerPending = usingBridge ? w.has_pending_offer : w.offer?.state === 'CUSTOM_OFFER_PROPOSAL';
   const offerRejected = usingBridge && ['REQUEST_CHANGES', 'REJECT'].includes(w.offer?.review_action);
   shell(`${renderWalkthrough(w)}<div class="detail-back"><button type="button" class="text-button" data-action="nav-students">← All students</button><span class="revision">Record revision ${w.revision}</span></div>
-    <section class="profile-header"><div class="avatar large" aria-hidden="true">${text(w.display_name.slice(0,1))}</div><div><p class="eyebrow">${text(sourceLabel[w.source.channel] || w.source.channel)} · ${usingBridge ? 'Platform ID not supported' : text(w.source.platform_handle)}</p><h1>${text(w.display_name)}</h1><span class="stage">${text(stageLabel[w.sales.stage] || w.sales.stage)}</span></div><button type="button" class="button subtle edit-profile" data-action="toggle-edit">Edit</button></section>
+    <section class="profile-header"><div class="avatar large" aria-hidden="true">${text(w.display_name.slice(0,1))}</div><div><p class="eyebrow">${text(sourceLabel[w.source.channel] || w.source.channel)} · ${usingBridge ? 'Platform ID not supported' : text(w.source.platform_handle)}</p><h1>${text(w.display_name)}</h1><span class="stage">Sales stage: ${text(stageLabel[w.sales.stage] || w.sales.stage)}</span> <span class="workflow-tag">Workflow: ${text(workflowStatus(w))}</span></div><button type="button" class="button subtle edit-profile" data-action="toggle-edit">Edit</button></section>
     ${blocked ? '<div class="alert blocked" role="alert"><strong>Contact stopped</strong>: no sales draft, approval, or send reminder is permitted. Internal records remain visible.</div>' : ''}
     ${!blocked && !sendAllowed ? '<div class="alert blocked" role="alert"><strong>Contact permission is not explicitly allowed</strong>: internal information may be organized, but sales sends cannot be approved or recorded.</div>' : ''}
     ${state.showEdit ? editStudentForm(w) : ''}
@@ -85,7 +109,7 @@ function renderDetail() {
     ${renderMemory(w)}
     ${renderTimeline(w)}
     ${renderProgress(w)}
-    <section class="panel inputs-panel"><div class="section-heading"><h2>Continue workflow</h2><span class="section-kicker">Two input types must stay separate</span></div><div class="dual-input"><form id="inbound-form" class="input-card student-input"><h3>Record student message</h3><p>Paste only the exact student message. The Agent cannot rewrite the stored original.</p><label>Student exact words<textarea name="raw_text" rows="3" required placeholder="Paste the exact student message"></textarea></label><label>Time received<input name="occurred_at" type="datetime-local"></label><button type="submit" class="button primary">Record student message</button></form><form id="internal-form" class="input-card internal-input"><h3>Discuss with Agent</h3><p>Internal feedback for the Agent is not treated as a student message or customer fact.</p><label>Internal note<textarea name="raw_text" rows="3" required placeholder="Example: this sounds stiff; explain the value first"></textarea></label><button type="submit" class="button">Record internal note</button></form></div></section>
+    ${renderInputWorkflow(w)}
     ${renderDecision(w, blocked, offerPending)}
     ${renderOffer(w, blocked)}
     ${renderDrafts(w, blocked, offerPending || offerRejected, latestDraft, sendAllowed && !offerRejected)}
@@ -263,6 +287,49 @@ async function mutate(operation, success) {
   render();
 }
 
+async function submitStudentMessage(data) {
+  state.error = ''; state.notice = '';
+  state.loading = true;
+  state.busyText = modelMode() ? 'Recording the message and running the Agent through the V2 Gates…' :
+    'Recording the message and preparing a scripted sample reply…';
+  render();
+  let recorded = false;
+  try {
+    const message = { raw_text: data.raw_text,
+      occurred_at: data.occurred_at ? new Date(data.occurred_at).toISOString() : undefined };
+    const afterInbound = await api.recordInbound(state.studentId, message);
+    recorded = true;
+    if (afterInbound.sales.contact_permission === 'DO_NOT_CONTACT') {
+      state.notice = 'Student message recorded. Contact is stopped, so no sales reply was generated.';
+    } else {
+      const result = await api.requestDecision(state.studentId);
+      const outcome = result.pipeline_outcome?.status;
+      if (outcome === 'APPROVAL_REQUIRED') {
+        state.notice = 'Student message recorded. A custom offer needs human approval before a reply can be drafted.';
+      } else if (outcome === 'STOPPED') {
+        state.notice = 'Student message recorded. The workflow stopped; no reply was generated.';
+      } else if (result.drafts.at(-1)?.status === 'PENDING_REVIEW') {
+        state.notice = modelMode() ? 'Agent reply drafted and workflow status updated. Human review is required before any send.' :
+          'Scripted sample reply drafted and workflow status updated. Human review is required before any send.';
+      } else {
+        throw new Error('The decision finished without a reviewable reply draft.');
+      }
+    }
+  } catch (error) {
+    state.notice = '';
+    state.error = recorded ? `The student message was recorded, but no reply draft was produced: ${error.message}` : error.message;
+  } finally {
+    try { state.workspace = await api.getWorkspace(state.studentId); }
+    catch (error) { state.error = `${state.error ? state.error + '; ' : ''}Workspace refresh failed: ${error.message}`; }
+    state.loading = false;
+    state.busyText = '';
+    render();
+    const target = document.querySelector(state.error ? '[role="alert"]' : '#latest-turn-result');
+    target?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+    target?.focus?.({ preventScroll: true });
+  }
+}
+
 root.addEventListener('click', async event => {
   const target = event.target.closest('[data-action]');
   if (!target) return;
@@ -301,7 +368,7 @@ root.addEventListener('submit', async event => {
   } else if (form.id === 'edit-student') {
     await mutate(() => api.updateStudent(state.studentId, studentUpdatePayload(data, state.workspace.revision, state.workspace.sales)), 'Record status updated.');
     if (!state.error) { state.showEdit = false; render(); }
-  } else if (form.id === 'inbound-form') await mutate(() => api.recordInbound(state.studentId, { raw_text: data.raw_text, occurred_at: data.occurred_at ? new Date(data.occurred_at).toISOString() : undefined }), 'The exact student message was recorded separately; any older approved draft is now stale.');
+  } else if (form.id === 'inbound-form') await submitStudentMessage(data);
   else if (form.id === 'internal-form') await mutate(() => api.discussInternal(state.studentId, { raw_text: data.raw_text }), 'The internal note was recorded and does not enter the student visible conversation.');
   else if (form.id === 'progress-label-form' && usingBridge) await mutate(() => api.labelProgressAssessment(state.studentId, {
     assessment_event_id: data.assessment_event_id, human_label: data.human_label, reason: data.reason,

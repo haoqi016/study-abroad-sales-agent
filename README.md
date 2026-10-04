@@ -65,7 +65,7 @@ python3 web/bridge_server.py 8765
 
 Open `http://127.0.0.1:8765/?bridge=offline` for the synthetic workspace. The bridge binds to loopback and does not connect to a CRM or messaging channel. The default mode uses a fixed script. A local Ollama experiment is available through the explicit `--ollama-model` option; its output remains subject to the same Gates and human-review path. See the [offline adapter guide](sales_agent/v2_offline_api/README.md) and [browser guide](web/README.md) for the exact local workflow.
 
-**Typical demo flow:** create a clearly marked synthetic student, record an inbound message, request a decision, inspect the Gate result and draft, request a revision or approve it, then record an external send only if a human claims to have sent the exact text. The system itself never contacts a student. A local outcome entry is only an operator assertion; it does not verify payment or conversion.
+**Typical demo flow:** create a clearly marked synthetic student, open the record, and use **Record message and generate reply** to capture the exact student words and show the reply draft plus updated workflow status. In default mode this is a fixed scripted sample, not live model inference. Inspect the Gate result and draft, then request a revision or approve it. Record an external send only if a human actually sent the exact text. The system itself never contacts a student. A local outcome entry is only an operator assertion; it does not verify payment or conversion.
 
 ## Evaluation and cost
 

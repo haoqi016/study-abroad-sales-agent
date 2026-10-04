@@ -44,3 +44,17 @@
 .progress-history li { margin-bottom: 12px; overflow-wrap: anywhere; }
 .progress-history li p { margin: 4px 0; font-size: .84rem; }
 .progress-history li small { color: var(--muted); }
+
+.input-card .helper { margin: 0; line-height: 1.45; }
+.turn-result { margin-top: 16px; border: 1px solid #a8cdc2; border-radius: 12px; padding: 15px; background: #f4faf7; scroll-margin-top: 18px; }
+.turn-result:focus { outline: 3px solid #78c9bf; outline-offset: 3px; }
+.turn-result-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; }
+.turn-result-heading .eyebrow { margin: 0; }
+.turn-result-heading strong { color: var(--teal-deep); font-size: .95rem; }
+.turn-reply { margin-top: 13px; }
+.turn-reply .eyebrow { margin-bottom: 7px; }
+.turn-reply blockquote { margin: 0 0 7px; padding: 12px 14px; background: white; border-left: 4px solid var(--teal); border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.turn-reply small, .turn-action { color: var(--muted); }
+.turn-action { margin: 11px 0 0; font-size: .8rem; }
+.workflow-tag { display: inline-block; margin: 5px 0 0 4px; border-radius: 100px; background: #e3f3ed; color: var(--teal-deep); padding: 4px 8px; font-size: .68rem; font-weight: 750; line-height: 1.25; }
+@media (max-width: 760px) { .dual-input { grid-template-columns: 1fr; } }
