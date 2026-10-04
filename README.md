@@ -75,7 +75,7 @@ The security and notification packages are standalone, opt-in boundaries. They u
 
 The [cost analysis](analysis/COST_ANALYSIS.md) compares a zero-model rule/template baseline (B0), a one-call baseline (B1), and a nominal three-call V2 path (B2). Its prices, tokens, handling times, volume, fixed costs, build effort and acceptance rates are **assumptions**, not observed spend or savings. An early stop, review revision, retry, or bounded repair can change actual calls; the modeled B2 total is not a runtime cost ceiling. Reproduce its arithmetic with `python3 analysis/cost_model.py` and `python3 -m unittest analysis.test_cost_model -v`.
 
-For a short coursework discussion of both the business case and engineering compromises, read the [under-1,200-word trade-off analysis](analysis/BUSINESS_TECHNICAL_TRADEOFFS.md).
+For a short coursework discussion of both the business case and engineering compromises, download the [under-1,200-word Word trade-off analysis](analysis/BUSINESS_TECHNICAL_TRADEOFFS.docx).
 
 ## Current status
 
