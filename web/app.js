@@ -1,10 +1,12 @@
 import { DemoAdapter, customerVisibleHistory, localActionTime, studentCreatePayload, studentUpdatePayload } from './api.js';
 import { OfflineBridgeAdapter, bridgeSelected } from './bridge_api.js';
+import { startScriptedWalkthrough } from './walkthrough.js';
 
 const usingBridge = bridgeSelected();
 const api = usingBridge ? new OfflineBridgeAdapter() : new DemoAdapter();
 const root = document.querySelector('#app');
-const state = { page: 'students', studentId: null, students: [], workspace: null, reminders: [], loading: false, error: '', notice: '', filter: 'ALL', requestId: 0, showAdd: false, showEdit: false, bridgeMode: 'SCRIPTED' };
+const state = { page: 'students', studentId: null, students: [], workspace: null, reminders: [], loading: false, error: '', notice: '', filter: 'ALL', requestId: 0, showAdd: false, showEdit: false, bridgeMode: 'SCRIPTED', walkthrough: null };
+let walkthroughTimer = null;
 const localModel = () => usingBridge && state.bridgeMode === 'LOCAL_OLLAMA';
 const remoteModel = () => usingBridge && state.bridgeMode === 'REMOTE_API';
 const modelMode = () => localModel() || remoteModel();
@@ -22,7 +24,7 @@ const progressLabel = { COMMITMENT_SIGNAL: 'Expressed signing intent (no verifie
 
 function shell(content) {
   root.innerHTML = `
-    <header class="topbar"><div class="brand"><span class="brand-mark">S</span><div><strong>Sales Workspace</strong><small>${remoteModel() ? 'Remote API Agent experiment · synthetic data only' : localModel() ? 'Local Ollama Agent experiment · synthetic data only' : usingBridge ? 'Local Python synthetic script · not a real Agent' : 'Browser synthetic demo · not a real Agent'}</small></div></div><span class="offline-badge">${remoteModel() ? 'API TEST' : localModel() ? 'LOCAL MODEL' : usingBridge ? 'DEMO/OFFLINE' : 'DEMO'}</span></header>
+    <header class="topbar"><div class="brand"><span class="brand-mark">S</span><div><strong>Sales Workspace</strong><small>${remoteModel() ? 'Remote API Agent experiment · synthetic data only' : localModel() ? 'Local Ollama Agent experiment · synthetic data only' : 'English coursework prototype'}</small></div></div>${modelMode() ? `<span class="offline-badge">${remoteModel() ? 'API TEST' : 'LOCAL MODEL'}</span>` : ''}</header>
     <main id="main-content" class="main-content">${state.error ? `<div class="alert error" role="alert">${text(state.error)} <button type="button" data-action="dismiss-error" aria-label="Dismiss error">×</button></div>` : ''}${state.notice ? `<div class="alert success" role="status">${text(state.notice)}</div>` : ''}${content}</main>
     <nav class="bottom-nav" aria-label="Main navigation"><button type="button" data-action="nav-students" class="${state.page === 'students' || state.page === 'detail' ? 'active' : ''}" ${state.page === 'students' || state.page === 'detail' ? 'aria-current="page"' : ''}><span aria-hidden="true">▦</span>Students</button><button type="button" data-action="nav-reminders" class="${state.page === 'reminders' ? 'active' : ''}" ${state.page === 'reminders' ? 'aria-current="page"' : ''}><span aria-hidden="true">◷</span>Reminders</button><button type="button" data-action="nav-me" class="${state.page === 'me' ? 'active' : ''}" ${state.page === 'me' ? 'aria-current="page"' : ''}><span aria-hidden="true">◎</span>Settings</button></nav>`;
 }
@@ -37,8 +39,7 @@ function render() {
 
 function renderStudents() {
   const students = state.students.filter(student => state.filter === 'ALL' || (state.filter === 'PRICE_OBJECTION' ? student.sales.stage === 'PRICE_OBJECTION' : state.filter === 'REVIEW_DUE' ? student.draft_status === 'PENDING_REVIEW' || student.has_pending_offer : state.filter === 'DO_NOT_CONTACT' ? student.sales.contact_permission === 'DO_NOT_CONTACT' : student.sales.stage === state.filter));
-  shell(`<section class="page-heading"><div><p class="eyebrow">Customer workspace</p><h1>Students</h1><p>Review status, then open one student to handle the next action.</p></div><button type="button" class="button primary" data-action="toggle-add">+ Add student</button></section>
-    <div class="demo-warning">Synthetic demo only. Do not enter real student information; ${modelMode() ? 'model inference may take several minutes and may fail validation or the V2 Gate; failure will not create a scripted draft.' : usingBridge ? 'data resets when the server restarts.' : 'new content resets when the page reloads.'}</div>
+  shell(`<section class="page-heading"><div><p class="eyebrow">Customer workspace</p><h1>Students</h1><p>Review status, then open one student to handle the next action.</p></div><div class="heading-actions">${usingBridge && state.bridgeMode === 'SCRIPTED' ? '<button type="button" class="button" data-action="play-walkthrough">▶ Play scripted walkthrough</button>' : ''}<button type="button" class="button primary" data-action="toggle-add">+ Add student</button></div></section>
     ${state.showAdd ? addStudentForm() : ''}
     <div class="filter-row" role="group" aria-label="Filter students">${[['ALL','All'], ['CONSULTING','Consulting'], ['PRICE_OBJECTION','Price objection'], ['LIKELY_TO_PAY','Likely to pay'], ['REVIEW_DUE','Review due'], ['WAITING_STUDENT','Waiting for student'], ['DO_NOT_CONTACT','Contact stopped']].map(([value,label]) => `<button type="button" data-action="filter" data-value="${value}" class="chip ${state.filter === value ? 'selected' : ''}" aria-pressed="${state.filter === value}">${label}</button>`).join('')}</div>
     ${students.length ? `<div class="student-list">${students.map(studentCard).join('')}</div>` : `<div class="empty-state"><span aria-hidden="true">◎</span><h2>No students match this filter</h2><p>Try another filter or add a synthetic student.</p></div>`}`);
@@ -52,6 +53,21 @@ function addStudentForm() {
   return `<form id="add-student" class="panel form-panel"><div class="section-heading"><h2>Add student (demo)</h2><button type="button" class="text-button" data-action="toggle-add">Cancel</button></div><p class="muted">Use synthetic data only; display names must include DEMO. A next action time is an internal suggestion, not contact consent. This page does not send messages or push notifications.</p>${usingBridge ? '<p class="helper">The offline bridge does not support platform IDs; only the synthetic source channel is recorded.</p>' : ''}<div class="form-grid"><label>Display name <span class="required">Required</span><input name="display_name" required maxlength="80" placeholder="${usingBridge ? 'Example: DEMO Student' : 'Example: DEMO Student X'}"></label><label>Source<select name="channel"><option value="XIAOHONGSHU">Xiaohongshu</option><option value="WECHAT">WeChat</option><option value="REFERRAL">Referral</option><option value="OTHER">Other</option></select></label>${usingBridge ? '' : '<label>Platform ID (browser demo only)<input name="platform_handle" maxlength="80" placeholder="Synthetic demo ID"></label>'}<label>Undergraduate university<input name="university" maxlength="120"></label><label>Undergraduate major<input name="major" maxlength="120"></label><label>Average score<input name="score" inputmode="decimal" maxlength="20"></label><label>Year<select name="year"><option value="UNKNOWN">Unknown</option><option value="YEAR_1">Year 1</option><option value="YEAR_2">Year 2</option><option value="YEAR_3">Year 3</option><option value="YEAR_4">Year 4</option><option value="GRADUATED">Graduated</option></select></label><label>Target country or region<select name="country"><option value="">Undecided</option><option value="SG">Singapore</option><option value="HK">Hong Kong</option><option value="UK">United Kingdom</option><option value="AU">Australia</option></select></label><label>Target universities<input name="target_universities" maxlength="240" placeholder="Separate universities with commas"></label><label>Target majors or programs<input name="target_programs" maxlength="240" placeholder="Separate programs with commas"></label><label>Sales stage<select name="stage">${Object.entries(stageLabel).map(([value,label]) => `<option value="${value}">${label}</option>`).join('')}</select></label><label>Current obstacle<input name="current_objection" maxlength="240"></label><label>Decision maker<input name="decision_maker" maxlength="120" placeholder="Example: student or parent (DEMO)"></label><label>Contact permission<select name="contact_permission"><option value="UNKNOWN">Unknown</option><option value="ALLOWED">Contact allowed</option><option value="LIMITED">Limited contact</option><option value="DO_NOT_CONTACT">Do not contact</option></select></label><label>Next action time<input name="next_action_at" type="datetime-local"></label><label>Next action reason<input name="next_action_reason" maxlength="240" placeholder="Example: demo follow up on needs"></label></div><button type="submit" class="button primary wide">Save demo record</button></form>`;
 }
 
+function renderWalkthrough(w) {
+  const tour = state.walkthrough;
+  if (!tour || tour.studentId !== w.student_id) return '';
+  const inbound = [...w.events].reverse().find(event => event.event_type === 'INBOUND_RECEIVED');
+  const draft = w.drafts.at(-1);
+  const steps = [
+    ['Student context', 'A fictional profile and the student\'s exact question enter the workspace.', inbound?.raw_content],
+    ['Sales decision', 'The Decision Agent records one objective and a next action.', `${w.decision?.current_objective?.goal || 'No objective recorded'} · ${w.decision?.action_plan?.selected_action || 'No action recorded'}`],
+    ['Reply draft', 'The Conversation Agent produces a customer-facing draft within that decision.', draft?.messages?.filter(message => message.type === 'text').map(message => message.content).join(' ')],
+    ['Human review', 'The draft awaits a person\'s review. This walkthrough never approves or sends it.', draft?.status === 'PENDING_REVIEW' ? 'Awaiting human review · unsent' : `Draft status: ${draft?.status || 'Unavailable'}`],
+  ];
+  const [title, explanation, evidence] = steps[tour.step];
+  return `<section class="walkthrough-player" aria-label="Scripted walkthrough"><div class="walkthrough-top"><span class="eyebrow">Scripted example · Step ${tour.step + 1} of ${steps.length}</span><div class="walkthrough-controls"><button type="button" class="text-button" data-action="walkthrough-replay">Replay</button>${tour.step < steps.length - 1 ? `<button type="button" class="text-button" data-action="walkthrough-toggle">${tour.playing ? 'Pause' : 'Continue'}</button>` : ''}</div></div><div aria-live="polite"><h2>${text(title)}</h2><p>${text(explanation)}</p><blockquote>${text(evidence || 'No evidence available')}</blockquote></div><ol class="walkthrough-progress" aria-label="Walkthrough progress">${steps.map((step, index) => `<li class="${index === tour.step ? 'current' : ''}" ${index === tour.step ? 'aria-current="step"' : ''}>${index + 1}</li>`).join('')}</ol></section>`;
+}
+
 function renderDetail() {
   const w = state.workspace;
   if (!w) return shell('<div class="empty-state"><h1>No student selected</h1><button class="button" data-action="nav-students">Back to student list</button></div>');
@@ -60,7 +76,7 @@ function renderDetail() {
   const latestDraft = w.drafts.at(-1);
   const offerPending = usingBridge ? w.has_pending_offer : w.offer?.state === 'CUSTOM_OFFER_PROPOSAL';
   const offerRejected = usingBridge && ['REQUEST_CHANGES', 'REJECT'].includes(w.offer?.review_action);
-  shell(`<div class="detail-back"><button type="button" class="text-button" data-action="nav-students">← All students</button><span class="revision">Record revision ${w.revision}</span></div>
+  shell(`${renderWalkthrough(w)}<div class="detail-back"><button type="button" class="text-button" data-action="nav-students">← All students</button><span class="revision">Record revision ${w.revision}</span></div>
     <section class="profile-header"><div class="avatar large" aria-hidden="true">${text(w.display_name.slice(0,1))}</div><div><p class="eyebrow">${text(sourceLabel[w.source.channel] || w.source.channel)} · ${usingBridge ? 'Platform ID not supported' : text(w.source.platform_handle)}</p><h1>${text(w.display_name)}</h1><span class="stage">${text(stageLabel[w.sales.stage] || w.sales.stage)}</span></div><button type="button" class="button subtle edit-profile" data-action="toggle-edit">Edit</button></section>
     ${blocked ? '<div class="alert blocked" role="alert"><strong>Contact stopped</strong>: no sales draft, approval, or send reminder is permitted. Internal records remain visible.</div>' : ''}
     ${!blocked && !sendAllowed ? '<div class="alert blocked" role="alert"><strong>Contact permission is not explicitly allowed</strong>: internal information may be organized, but sales sends cannot be approved or recorded.</div>' : ''}
@@ -184,6 +200,43 @@ async function loadReminders() {
   finally { if (request === state.requestId) { state.loading = false; render(); } }
 }
 
+function scheduleWalkthrough() {
+  clearTimeout(walkthroughTimer);
+  const tour = state.walkthrough;
+  if (!tour?.playing || state.page !== 'detail' || state.studentId !== tour.studentId) return;
+  walkthroughTimer = setTimeout(() => {
+    if (state.walkthrough !== tour || state.page !== 'detail' || state.studentId !== tour.studentId) return;
+    tour.step = Math.min(tour.step + 1, 3);
+    if (tour.step === 3) tour.playing = false;
+    render();
+    scheduleWalkthrough();
+  }, 4800);
+}
+
+async function playWalkthrough() {
+  state.error = '';
+  state.notice = '';
+  state.loading = true;
+  state.busyText = 'Preparing a fictional student and a reviewable draft…';
+  render();
+  try {
+    const result = await startScriptedWalkthrough(api);
+    state.students = await api.listStudents();
+    state.studentId = result.student_id;
+    state.workspace = result;
+    state.page = 'detail';
+    state.walkthrough = { studentId: result.student_id, step: 0, playing: true };
+  } catch (error) {
+    state.error = error.message;
+    state.students = await api.listStudents().catch(() => state.students);
+  } finally {
+    state.loading = false;
+    state.busyText = '';
+    render();
+    scheduleWalkthrough();
+  }
+}
+
 async function mutate(operation, success) {
   state.error = ''; state.notice = '';
   state.loading = true;
@@ -213,6 +266,7 @@ async function mutate(operation, success) {
 root.addEventListener('click', async event => {
   const target = event.target.closest('[data-action]');
   if (!target) return;
+  if (state.loading) return;
   const action = target.dataset.action;
   if (action === 'dismiss-error') { state.error = ''; render(); }
   else if (action === 'nav-students') { state.page = 'students'; state.notice = ''; await loadStudents(); }
@@ -222,6 +276,13 @@ root.addEventListener('click', async event => {
   else if (action === 'toggle-add') { state.showAdd = !state.showAdd; render(); }
   else if (action === 'toggle-edit') { state.showEdit = !state.showEdit; render(); }
   else if (action === 'filter') { state.filter = target.dataset.value; render(); }
+  else if (action === 'play-walkthrough' && usingBridge && state.bridgeMode === 'SCRIPTED') await playWalkthrough();
+  else if (action === 'walkthrough-replay' && state.walkthrough) {
+    state.walkthrough.step = 0; state.walkthrough.playing = true; render(); scheduleWalkthrough();
+  }
+  else if (action === 'walkthrough-toggle' && state.walkthrough) {
+    state.walkthrough.playing = !state.walkthrough.playing; render(); scheduleWalkthrough();
+  }
   else if (action === 'request-decision') await mutate(() => api.requestDecision(state.studentId), result => {
     if (result.pipeline_outcome?.status === 'APPROVAL_REQUIRED') return 'The model proposed a custom offer for internal review. A human must check and approve it; there is no customer draft yet.';
     if (result.pipeline_outcome?.status === 'STOPPED') return `This turn stopped (${result.pipeline_outcome.reason_codes?.join(', ') || 'stop condition'}); no customer draft was generated.`;

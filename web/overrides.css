@@ -19,6 +19,19 @@
 .reviewed-offer { border-color: #e7a7a3; }
 @media (max-width: 400px) { .offer-review-form .button-row { grid-template-columns: 1fr; } }
 
+.heading-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.walkthrough-player { background: #eaf4f1; border: 1px solid #a8cdc2; border-radius: 16px; padding: 18px; margin-bottom: 17px; }
+.walkthrough-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.walkthrough-top .eyebrow { margin: 0; }
+.walkthrough-controls { display: flex; gap: 14px; }
+.walkthrough-player h2 { font-size: 1.3rem; margin: 12px 0 5px; }
+.walkthrough-player p { font-size: .88rem; margin-bottom: 12px; }
+.walkthrough-player blockquote { margin: 0; padding: 12px 14px; background: #fff; border-left: 4px solid var(--teal); border-radius: 8px; font-size: .91rem; line-height: 1.5; }
+.walkthrough-progress { display: flex; list-style: none; gap: 8px; padding: 0; margin: 15px 0 0; }
+.walkthrough-progress li { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: #d0e2dd; color: #42645b; font-size: .76rem; font-weight: 800; }
+.walkthrough-progress li.current { background: var(--teal); color: #fff; }
+@media (max-width: 600px) { .page-heading:has(.heading-actions) { align-items: flex-start; flex-direction: column; } .heading-actions { width: 100%; justify-content: flex-start; } .heading-actions .button { max-width: none; } }
+
 .progress-source { border: 1px solid #c8dcd4; background: #f5faf7; border-radius: 11px; padding: 12px; margin-bottom: 15px; }
 .progress-source strong { font-size: .82rem; }
 .progress-source p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .88rem; margin: 7px 0; }

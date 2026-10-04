@@ -21,7 +21,7 @@ from sales_agent.v2_tools.delegated_program import load_delegated_program_source
 
 WEB = Path(__file__).resolve().parent
 STATIC = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js",
-          "/api.js": "api.js", "/bridge_api.js": "bridge_api.js",
+          "/api.js": "api.js", "/bridge_api.js": "bridge_api.js", "/walkthrough.js": "walkthrough.js",
           "/styles.css": "styles.css", "/overrides.css": "overrides.css",
           "/manifest.webmanifest": "manifest.webmanifest"}
 MIME = {".html": "text/html", ".js": "text/javascript", ".css": "text/css",
