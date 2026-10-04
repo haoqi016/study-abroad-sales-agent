@@ -71,10 +71,24 @@ export class OfflineBridgeAdapter extends SalesWorkspaceApi {
   async requestDecision(id) {
     const result = await this.#request('POST', this.#path(id, 'decision'), { demo_only: true });
     const outcome = result.pipeline;
-    if (!['REVIEW_REQUIRED', 'APPROVAL_REQUIRED', 'STOPPED'].includes(outcome?.status)) {
+    if (!['REVIEW_REQUIRED', 'APPROVAL_REQUIRED', 'STOPPED', 'ASK_HUMAN', 'NO_LANGUAGE_MATCH'].includes(outcome?.status)) {
       throw new Error(`The local synthetic decision did not produce a reviewable draft: ${result.pipeline?.status || 'UNKNOWN'} ${array(result.pipeline?.reason_codes).join(', ')}`);
     }
     return { ...workspaceView(result.workspace), pipeline_outcome: outcome };
+  }
+  async resumeGoldPause(id, resolution) {
+    const reason = String(resolution.reason || '').trim();
+    if (!reason || !resolution.pause_event_id) throw new Error('Select the current pause and explain your decision.');
+    if (resolution.action !== 'SELECT_STRATEGY' || resolution.strategy_choice !== 'FIRST') {
+      throw new Error('Confirm continuation with the independent decision.');
+    }
+    const result = await this.#request('POST', this.#path(id, 'gold-resume'), {
+      ...resolution, reason, demo_only: true,
+    });
+    if (!['REVIEW_REQUIRED', 'APPROVAL_REQUIRED', 'STOPPED', 'ASK_HUMAN', 'NO_LANGUAGE_MATCH'].includes(result.pipeline?.status)) {
+      throw new Error(`The review did not finish: ${result.pipeline?.status || 'UNKNOWN'} ${array(result.pipeline?.reason_codes).join(', ')}`);
+    }
+    return { ...workspaceView(result.workspace), pipeline_outcome: result.pipeline };
   }
   async reviewDraft(id, review) { return workspaceView(await this.#request('POST', this.#path(id, 'review'), { ...review, demo_only: true })); }
   async approveDraft(id) { return workspaceView(await this.#request('POST', this.#path(id, 'approve'), { demo_only: true })); }

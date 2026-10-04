@@ -115,7 +115,7 @@ def dispatch(api: OfflineWorkspaceApi, method: str, path: str, body: dict | None
     parts = path.strip("/").split("/")
     if method == "GET" and path == "/api/health":
         return {"environment": "DEMO_OFFLINE", "bridge": "localhost", "synthetic_only": True,
-                "agent_mode": api.agent_mode}
+                "agent_mode": api.agent_mode, "gold_homework_enabled": api.gold_homework_enabled}
     if parts[:2] != ["api", "students"]:
         raise KeyError("unknown_route")
     if len(parts) == 2:
@@ -147,6 +147,8 @@ def dispatch(api: OfflineWorkspaceApi, method: str, path: str, body: dict | None
     if action == "actual-sent": return api.recordActualSent(sid, body)
     if action == "commercial-outcome": return api.recordCommercialOutcome(sid, body)
     if action == "progress-label": return api.labelProgressAssessment(sid, body)
+    if action == "gold-resume":
+        return api.resumeGoldPause(sid, body)
     if action == "decision":
         if body != {"demo_only": True}:
             raise OfflineOnlyError("DEMO_OFFLINE_synthetic_assertion_required")
@@ -244,6 +246,8 @@ def main() -> None:
     parser.add_argument("--api-config", type=Path,
                         help="Private 0600 JSON config for a compatible chat/completions API")
     parser.add_argument("--api-timeout", type=float, default=120.0)
+    parser.add_argument("--gold-homework", action="store_true",
+                        help="Enable synthetic English reference review for fictional demo records")
     parser.add_argument("--offline-public-cases", action="store_true",
                         help="Opt in to coarse external references for synthetic homework")
     parser.add_argument("--offline-public-cases-db", type=Path,
@@ -355,6 +359,7 @@ def main() -> None:
         provider_mode = "LOCAL_OLLAMA"
     with OfflineWorkspaceApi(local_provider_factory=factory, provider_mode=provider_mode,
                              db_path=args.sqlite_file,
+                             enable_gold_homework=args.gold_homework,
                              offline_public_cases_source=cases_source,
                              allow_remote_public_cases=args.remote_public_cases,
                              program_source=program_source,

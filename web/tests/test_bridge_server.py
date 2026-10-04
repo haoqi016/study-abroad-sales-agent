@@ -74,6 +74,8 @@ class BridgeTests(unittest.TestCase):
             })
 
     def test_routing_and_synthetic_boundary(self):
+        health = dispatch(self.api, "GET", "/api/health")
+        self.assertIs(health["gold_homework_enabled"], False)
         with self.assertRaises(OfflineOnlyError):
             dispatch(self.api, "POST", "/api/students", {"display_name": "DEMO Student"})
         with self.assertRaises(OfflineOnlyError):
@@ -89,6 +91,46 @@ class BridgeTests(unittest.TestCase):
         with self.assertRaises(OfflineOnlyError):
             dispatch(self.api, "POST", f"/api/students/{sid}/approve", {
                 "demo_only": True, "passed": True})
+
+    def test_gold_resume_route_requires_synthetic_assertion(self):
+        sid = self.create()["student_id"]
+        route = f"/api/students/{sid}/gold-resume"
+        bridge_api = Mock()
+        with self.assertRaises(OfflineOnlyError):
+            dispatch(bridge_api, "POST", route, {
+                "pause_event_id": "demo-pause", "action": "SELECT_STRATEGY", "reason": "Synthetic evidence"})
+        body = {"demo_only": True, "pause_event_id": "demo-pause",
+                "action": "SELECT_STRATEGY", "strategy_choice": "FIRST",
+                "reason": "Synthetic evidence"}
+        bridge_api.agent_mode = "LOCAL_OLLAMA"
+        bridge_api.resumeGoldPause.return_value = {"pipeline": {"status": "REVIEW_REQUIRED"}}
+        self.assertEqual(dispatch(bridge_api, "POST", route, body),
+                         {"pipeline": {"status": "REVIEW_REQUIRED"}})
+        bridge_api.resumeGoldPause.assert_called_once_with(sid, body)
+
+    def test_health_reports_explicit_synthetic_gold_mode(self):
+        with OfflineWorkspaceApi(enable_gold_homework=True) as api:
+            health = dispatch(api, "GET", "/api/health")
+            self.assertIs(health["gold_homework_enabled"], True)
+            self.assertIs(health["synthetic_only"], True)
+            record = dispatch(api, "POST", "/api/students", {
+                "demo_only": True, "display_name": "DEMO Student",
+                "sales": {"contact_permission": "ALLOWED"}})
+            path = f"/api/students/{record['student_id']}"
+            dispatch(api, "POST", path + "/inbound", {
+                "demo_only": True, "raw_text": "DEMO: I need help with my application scope."})
+            result = dispatch(api, "POST", path + "/decision", {"demo_only": True})
+            self.assertEqual(result["pipeline"]["status"], "ASK_HUMAN")
+            self.assertTrue(result["workspace"]["gold_trace"])
+            pending = result["workspace"]["gold_pending"]
+            self.assertEqual(result["workspace"]["gold_pending_status"], "ASK_HUMAN")
+            resumed = dispatch(api, "POST", path + "/gold-resume", {
+                "demo_only": True, "pause_event_id": pending["event_id"],
+                "action": "SELECT_STRATEGY", "strategy_choice": "FIRST",
+                "reason": "The first decision follows the fictional student's question."})
+            self.assertEqual(resumed["pipeline"]["status"], "REVIEW_REQUIRED")
+            self.assertIsNone(resumed["workspace"]["gold_pending"])
+            self.assertEqual(resumed["workspace"]["sent"], [])
 
     def test_offer_review_route_preserves_synthetic_contract_and_each_action(self):
         sid = self.create()["student_id"]

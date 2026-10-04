@@ -28,9 +28,10 @@ from .policy import (
     validate_conversation, validate_decision,
 )
 from .providers import JSONProvider, ProviderError
-from .context_projection import (build_commercial_decision_view,
+from .context_projection import (build_common_fact_package, project_tool_planning_context,
                                  conversation_goal_from_decision, project_customer_history)
 from .conversation_style import select_style_shape
+from . import public_gold
 
 
 # Only these fixed runtime codes may leave the store as diagnostic metadata.
@@ -131,7 +132,8 @@ class V2SalesPipeline:
     def __init__(self, *, store: V2RuntimeStore, decision_provider: JSONProvider,
                  conversation_provider: JSONProvider, tools: ToolPorts | None = None,
                  pricing_policy: dict | None = None,
-                 style_shape_enabled: bool = False) -> None:
+                 style_shape_enabled: bool = False,
+                 enable_gold_homework: bool = False) -> None:
         self.store = store
         self.decision_provider = decision_provider
         self.conversation_provider = conversation_provider
@@ -139,6 +141,9 @@ class V2SalesPipeline:
         if type(style_shape_enabled) is not bool:
             raise ValueError("style_shape_enabled_must_be_boolean")
         self.style_shape_enabled = style_shape_enabled
+        if type(enable_gold_homework) is not bool:
+            raise ValueError("gold_homework_opt_in_must_be_boolean")
+        self.enable_gold_homework = enable_gold_homework
         self.pricing_policy = deepcopy(pricing_policy or DEFAULT_PRICING_POLICY)
         if self.pricing_policy.get("approval_status") != "APPROVED" or self.pricing_policy.get("approved_by") != "OWNER":
             raise ValueError("pricing_policy_must_be_owner_approved")
@@ -542,7 +547,8 @@ class V2SalesPipeline:
         return saved
 
     def run_turn(self, *, student_id: str, conversation_id: str, inbound_event_id: str,
-                 idempotency_key: str, review_event_id: str | None = None) -> PipelineResult:
+                 idempotency_key: str, review_event_id: str | None = None,
+                 gold_resolution: dict | None = None) -> PipelineResult:
         try:
             existing = self._existing_run(student_id=student_id, conversation_id=conversation_id,
                                           inbound_event_id=inbound_event_id,
@@ -594,8 +600,21 @@ class V2SalesPipeline:
             if context["current_state"]["contact_permission"] == "UNKNOWN":
                 result.reason_codes = ["CONTACT_PERMISSION_UNKNOWN"]
                 return result
-            model_context = self._model_context(context)
-            plan = self.decision_provider.generate_json("tool_plan", {"turn_context": model_context})
+            snapshot = self.store.get_student_snapshot(student_id)
+            if snapshot is None or snapshot["snapshot_revision"] != context["student_snapshot_revision"]:
+                raise PolicyViolation("STUDENT_SNAPSHOT_CHANGED_DURING_TURN")
+            context_events = [event for event in self.store.list_events(student_id)
+                              if event["revision"] < context_event["revision"]]
+            fact_package = build_common_fact_package(
+                context=context, all_events=context_events, memory_items=context["memory_items"],
+                student_record=snapshot["snapshot"], authoritative_business_materials={
+                    "pricing_policy": self.pricing_policy})
+            model_context = fact_package["turn_context"]
+            model_context["inbound_interpretation_status"] = context["latest_inbound_interpretation_status"]
+            model_context["inbound_interpretation"] = context["latest_inbound_interpretation"]
+            model_context["long_term_memory"]["mandatory_memory_ids"] = context["mandatory_memory_ids"]
+            plan = self.decision_provider.generate_json(
+                "tool_plan", {"turn_context": project_tool_planning_context(fact_package)})
             requests = self._validate_tool_plan(plan)
             evidence: dict[str, dict] = {}
             final_tool_results: list[dict] = []
@@ -637,25 +656,17 @@ class V2SalesPipeline:
                 for evid, item in self._returned_evidence(response).items():
                     evidence[evid] = {"source_type": response["source_type"],
                                       "source_version": response.get("source_version"), "item": item}
-            context_events = [event for event in self.store.list_events(student_id)
-                              if event["revision"] < context_event["revision"]]
-            corrected_outcomes = {event["payload"].get("corrects_event_id")
-                                  for event in context_events
-                                  if event["event_type"] == "COMMERCIAL_OUTCOME"
-                                  and event["payload"].get("corrects_event_id")}
-            active_outcome_ids = {event["event_id"] for event in context_events
-                                  if event["event_type"] == "COMMERCIAL_OUTCOME"
-                                  and event["event_id"] not in corrected_outcomes}
-            commercial_view = build_commercial_decision_view(
-                context=context, all_events=context_events,
-                memory_items=context["memory_items"], active_outcome_ids=active_outcome_ids)
-            decision_input = {"commercial_decision_view": commercial_view,
+            decision_input = {"commercial_decision_view": fact_package["commercial_decision_view"],
                               "turn_context": model_context,
                               "tool_results": final_tool_results,
                               "available_evidence_ids": sorted(evidence),
                               "pricing_policy": self.pricing_policy,
                               "gold_policy_version": GOLD_POLICY_VERSION}
-            decision = self.decision_provider.generate_json("decision", decision_input)
+            # A human-resumed turn reuses the recorded first decision. A fresh
+            # provider call could make a different decision for the same pause.
+            decision = (deepcopy(gold_resolution["first_decision"])
+                        if gold_resolution is not None and isinstance(gold_resolution.get("first_decision"), dict)
+                        else self.decision_provider.generate_json("decision", decision_input))
             decision = dict(decision)
             if not {"normalized_meaning", "normalized_meaning_spans"} <= set(decision):
                 raise PolicyViolation("INBOUND_INTERPRETATION_FIELDS_MISSING")
@@ -688,6 +699,40 @@ class V2SalesPipeline:
                         for field in ("normalized_meaning", "normalized_meaning_spans", "hypotheses", "unknowns"):
                             if decision.get(field) != corrected[field]:
                                 raise PolicyViolation("DECISION_CONFLICTS_WITH_HUMAN_INTERPRETATION")
+            if self.enable_gold_homework:
+                def record_stage(stage: str, output: dict) -> dict:
+                    return self.store.record_public_gold_stage(
+                        student_id=student_id, conversation_id=conversation_id,
+                        context_event_id=context_event["event_id"], stage=stage,
+                        output=output, idempotency_key=f"{idempotency_key}:public-gold:{stage}")
+                record_stage("D0", {"first_decision": deepcopy(decision)})
+                selection = public_gold.select("decision", inbound["payload"]["raw_text"])
+                record_stage("G0", selection)
+                comparison = {"disposition": "KEEP_FIRST", "similarities": [],
+                              "key_differences": [], "reason": "No applicable public reference"}
+                if selection["status"] == "MATCH":
+                    example = public_gold.get(selection["gold_id"], "decision")
+                    selected_action = decision.get("action_plan", {}).get("selected_action", "")
+                    strategy = decision.get("selected_strategy", {}).get("strategy_code", "")
+                    suggested = example["suggested_action"]
+                    if not (suggested in {selected_action, strategy}
+                            or isinstance(strategy, str) and strategy.startswith(suggested + "_")):
+                        comparison = {"disposition": "ASK_HUMAN", "similarities": [],
+                                      "key_differences": ["The synthetic reference suggests a different action."],
+                                      "reason": "A public example cannot override a source-backed decision."}
+                    else:
+                        comparison = {"disposition": "KEEP_FIRST", "similarities": ["The action matches the synthetic reference."],
+                                      "key_differences": [], "reason": "The reference has no authority over this student."}
+                record_stage("D1", {"comparison": comparison, "final_decision": deepcopy(decision),
+                                    "status": "ASK_HUMAN" if comparison["disposition"] == "ASK_HUMAN" and gold_resolution is None else "CONTINUE"})
+                if comparison["disposition"] == "ASK_HUMAN" and gold_resolution is None:
+                    result.status, result.reason_codes = "ASK_HUMAN", ["PUBLIC_GOLD_STRATEGY_REVIEW"]
+                    return result
+                if gold_resolution is not None and (gold_resolution.get("action") != "SELECT_STRATEGY"
+                                                    or gold_resolution.get("strategy_choice") != "FIRST"):
+                    raise PolicyViolation("INVALID_PUBLIC_GOLD_RESOLUTION")
+                language = public_gold.select("language", inbound["payload"]["raw_text"])
+                record_stage("G1", language)
             decision.setdefault("program_claims", [])
             decision.setdefault("memory_candidates", [])
             decision.update({"input_event_ids": observations,
@@ -801,6 +846,30 @@ class V2SalesPipeline:
             conversation = self.conversation_provider.generate_json("conversation", conversation_input)
             messages = conversation.get("messages") if isinstance(conversation, dict) else None
             style = conversation.get("style_transformations", []) if isinstance(conversation, dict) else []
+            if self.enable_gold_homework:
+                record_stage("C0", {"status": "GENERATED"})
+                style_result = public_gold.style_review(
+                    messages if isinstance(messages, list) else [],
+                    public_gold.get(language["gold_id"], "language"))
+                record_stage("C0_STYLE_CHECK", style_result)
+                if style_result["status"] == "REVISE":
+                    try:
+                        revision = self.conversation_provider.generate_json("conversation", {
+                            **conversation_input, "previous_messages": messages,
+                            "style_feedback": style_result["issues"],
+                            "repair_limit": 1})
+                        candidate = revision.get("messages") if isinstance(revision, dict) else None
+                        validate_conversation(decision, candidate,
+                                              verified_claims=verification.get("data", []) if verification else [])
+                        revised_style = public_gold.style_review(
+                            candidate, public_gold.get(language["gold_id"], "language"))
+                        record_stage("C0_REPAIR", {"status": "GENERATED"})
+                        record_stage("C0_STYLE_RECHECK", revised_style)
+                        messages = candidate
+                        style = revision.get("style_transformations", [])
+                        style_result = revised_style
+                    except (ProviderError, PolicyViolation, TypeError, AttributeError):
+                        record_stage("C0_REPAIR", {"status": "UNAVAILABLE_OR_INVALID"})
             if not isinstance(style, list):
                 raise PolicyViolation("INVALID_STYLE_TRANSFORMATIONS")
             # Persist rejected draft for audit, then a failing POST gate. This
@@ -810,6 +879,8 @@ class V2SalesPipeline:
                 validate_conversation(decision, messages, verified_claims=verification.get("data", []) if verification else [])
             except PolicyViolation as exc:
                 post_errors = exc.codes
+            if self.enable_gold_homework and style_result["status"] == "REVISE":
+                post_errors.append("STYLE_HUMAN_REVIEW_REQUIRED")
             if not isinstance(messages, list) or not messages or not any(isinstance(m, dict) and m.get("type") == "text" and str(m.get("content", "")).strip() for m in messages):
                 raise PolicyViolation("NO_PERSISTABLE_DRAFT")
             draft_event = self.store.create_draft(

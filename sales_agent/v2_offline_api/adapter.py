@@ -12,6 +12,7 @@ from typing import Callable
 from uuid import uuid4
 
 from sales_agent.v2_pipeline import DeterministicOfflineProvider, JSONProvider, LocalOllamaJSONProvider, ToolPorts, V2SalesPipeline
+from sales_agent.v2_pipeline import public_gold
 from sales_agent.v2_runtime import V2RuntimeStore
 from sales_agent.v2_tools.offline_public_cases import OfflinePublicCasesSource
 from sales_agent.v2_tools.official_program_source import PinnedOfficialProgramSource
@@ -68,9 +69,18 @@ class OfflineWorkspaceApi:
                  offline_public_cases_source: OfflinePublicCasesSource | None = None,
                  allow_remote_public_cases: bool = False,
                  program_source: ApprovedProgramSnapshot | None = None,
-                 official_source: PinnedOfficialProgramSource | None = None) -> None:
+                 official_source: PinnedOfficialProgramSource | None = None,
+                 enable_gold_homework: bool = False,
+                 allow_remote_gold: bool = False) -> None:
         if provider_mode not in {"LOCAL_OLLAMA", "REMOTE_API"}:
             raise OfflineOnlyError("unsupported_provider_mode")
+        if type(enable_gold_homework) is not bool or type(allow_remote_gold) is not bool:
+            raise OfflineOnlyError("gold_homework_opt_in_must_be_boolean")
+        if allow_remote_gold and (not enable_gold_homework or provider_mode != "REMOTE_API"
+                                  or local_provider_factory is None):
+            raise OfflineOnlyError("remote_gold_requires_explicit_homework_mode")
+        if enable_gold_homework and provider_mode == "REMOTE_API" and not allow_remote_gold:
+            raise OfflineOnlyError("remote_gold_requires_explicit_opt_in")
         if offline_public_cases_source is not None and local_provider_factory is None:
             raise OfflineOnlyError("offline_public_cases_require_explicit_model")
         if allow_remote_public_cases != (offline_public_cases_source is not None and provider_mode == "REMOTE_API"):
@@ -87,6 +97,8 @@ class OfflineWorkspaceApi:
         self._store = V2RuntimeStore(path)
         self._students: dict[str, str] = {}
         self._scripts: dict[str, list[dict]] = {}
+        self.gold_homework_enabled = enable_gold_homework
+        self._gold_resolutions: dict[str, dict] = {}
         self._local_provider_factory = local_provider_factory
         self._offline_public_cases_source = offline_public_cases_source
         self._program_source = program_source
@@ -192,7 +204,7 @@ class OfflineWorkspaceApi:
             raise OfflineOnlyError("scripts_disabled_in_local_model_mode")
         self._conversation(student_id)
         self._assert_synthetic(script)
-        if set(script) - {"demo_only", "tool_plan", "decision", "conversation", "review_reflection"}:
+        if set(script) - {"demo_only", "tool_plan", "decision", "conversation", "conversation_rewrite", "review_reflection"}:
             raise OfflineOnlyError("invalid_offline_script")
         if any(not isinstance(value, dict) for key, value in script.items() if key != "demo_only"):
             raise OfflineOnlyError("invalid_offline_script")
@@ -205,6 +217,7 @@ class OfflineWorkspaceApi:
                 raise OfflineOnlyError("offline_public_cases_require_local_ollama")
             return V2SalesPipeline(store=self._store, decision_provider=provider,
                                    conversation_provider=provider,
+                                   enable_gold_homework=self.gold_homework_enabled,
                                    tools=ToolPorts(offline_public_cases_source=self._offline_public_cases_source,
                                                    offline_homework_mode=self._offline_public_cases_source is not None,
                                                    program_source=self._program_source,
@@ -212,15 +225,17 @@ class OfflineWorkspaceApi:
         queue = self._scripts.get(student_id, [])
         if not queue:
             raise OfflineOnlyError("scripted_offline_response_required")
-        script = queue.pop(0)
+        script = queue[0] if self.gold_homework_enabled else queue.pop(0)
         decision = DeterministicOfflineProvider({
             key: [script[key]] for key in ("tool_plan", "decision", "review_reflection") if key in script
         })
         conversation = DeterministicOfflineProvider({
-            key: [script[key]] for key in ("conversation", "review_reflection") if key in script
+            "conversation": [script[key] for key in ("conversation", "conversation_rewrite") if key in script],
+            **({"review_reflection": [script["review_reflection"]]} if "review_reflection" in script else {}),
         })
         return V2SalesPipeline(store=self._store, decision_provider=decision,
-                               conversation_provider=conversation, tools=ToolPorts())
+                               conversation_provider=conversation, tools=ToolPorts(),
+                               enable_gold_homework=self.gold_homework_enabled)
 
     def createStudent(self, record: dict) -> dict:
         self._assert_synthetic(record)
@@ -359,9 +374,13 @@ class OfflineWorkspaceApi:
             offer_view.update(deepcopy(approval["payload"]["approved_offer"]))
             offer_view["state"] = "APPROVED_CUSTOM_OFFER"
             offer_view["approval_event_id"] = approval["event_id"]
+        gold_view = self._gold_workspace_view(student_id, events)
         return {
             **view, "revision": snapshot["snapshot_revision"], "field_provenance": provenance,
-            "events": events, "memory": self._store.get_student_memory(student_id)["items"],
+            **gold_view,
+            "events": [self._public_gold_event(event) if event["event_type"] == "GOLD_STAGE_RECORDED"
+                       else event for event in events],
+            "memory": self._store.get_student_memory(student_id)["items"],
             "decision": deepcopy(decision["payload"]) if decision else None,
             "offer": offer_view,
             "drafts": [{"draft_id": draft["event_id"], "revision": draft["payload"]["draft_revision"],
@@ -387,6 +406,66 @@ class OfflineWorkspaceApi:
                                                                         "CONTACT_PERMISSION_SET"}), None),
             "demo_only": True, "environment": "DEMO_OFFLINE",
         }
+
+    @staticmethod
+    def _public_gold_event(event: dict) -> dict:
+        """Expose stage status and a bounded decision summary to the browser."""
+        payload = event["payload"]
+        output = payload.get("output", {})
+        safe = {key: output[key] for key in ("status", "gold_id", "gold_ids", "source_version",
+                                             "reason", "comparison", "issues", "version") if key in output}
+        def summary(decision: object) -> dict:
+            if not isinstance(decision, dict):
+                return {}
+            return {key: deepcopy(decision[key]) for key in ("current_objective", "action_plan",
+                                                    "selected_strategy", "content_contract") if key in decision}
+        if "first_decision" in output:
+            safe["first_decision"] = summary(output["first_decision"])
+        if "final_decision" in output:
+            safe["final_decision"] = summary(output["final_decision"])
+        return {key: deepcopy(value) for key, value in event.items() if key != "payload"} | {
+            "payload": {"stage": payload["stage"], "context_event_id": payload["context_event_id"],
+                        "output": safe, "pause_reason": "ASK_HUMAN" if safe.get("status") == "ASK_HUMAN" else None}}
+
+    def _gold_workspace_view(self, student_id: str, events: list[dict]) -> dict:
+        if not self.gold_homework_enabled:
+            return {"gold_homework_enabled": False, "gold_trace": [], "gold_pending": None,
+                    "gold_pending_status": None, "gold_language_catalog": []}
+        contexts = [event for event in events if event["event_type"] == "TURN_CONTEXT_BUILT"]
+        context_id = contexts[-1]["event_id"] if contexts else None
+        trace = self._store.public_gold_trace(student_id, context_id) if context_id else []
+        latest_inbound = next((event for event in reversed(events)
+                               if event["event_type"] == "INBOUND_RECEIVED"), None)
+        resolutions = [event for event in events if event["event_type"] == "GOLD_HUMAN_RESOLVED"
+                       and latest_inbound and event["revision"] > latest_inbound["revision"]]
+        public_trace = [self._public_gold_event(event) if event["event_type"] == "GOLD_STAGE_RECORDED"
+                        else {key: deepcopy(value) for key, value in event.items() if key != "payload"} | {
+                            "payload": {"pause_event_id": event["payload"]["pause_event_id"],
+                                        "action": "SELECT_STRATEGY", "selection": {
+                                            "strategy_choice": event["payload"]["choice"],
+                                            "reason": event["payload"]["reason"]}}}
+                        for event in sorted(trace + resolutions, key=lambda item: item["revision"])]
+        latest_d1 = next((event for event in reversed(public_trace)
+                          if event["payload"].get("stage") == "D1"), None)
+        resolved_ids = {event["payload"]["pause_event_id"] for event in events
+                        if event["event_type"] == "GOLD_HUMAN_RESOLVED"}
+        pending = (latest_d1 if latest_d1 and latest_d1["payload"].get("pause_reason") == "ASK_HUMAN"
+                   and latest_d1["event_id"] not in resolved_ids else None)
+        if pending and latest_inbound and context_id and latest_inbound["revision"] > self._store.get_event(context_id)["revision"]:
+            pending = None
+        if pending is None and self._store.list_events(student_id, event_type="GOLD_RESUME_HANDOFF"):
+            retry = self._store.list_events(student_id, event_type="GOLD_RESUME_HANDOFF")[-1]
+            completed_drafts = [event for event in events if event["event_type"] == "DRAFTED"
+                                and event["revision"] > retry["revision"]]
+            if not completed_drafts and (latest_inbound is None or latest_inbound["revision"] < retry["revision"]):
+                original = self._store.get_event(retry["payload"]["pause_event_id"])
+                pending = self._public_gold_event(original) if original else None
+        return {"gold_homework_enabled": True, "gold_trace": public_trace,
+                "gold_pending": pending, "gold_pending_status": (
+                    "RESUME_HANDOFF" if pending and pending["event_id"] in {
+                        event["payload"]["pause_event_id"] for event in self._store.list_events(student_id, event_type="GOLD_RESUME_HANDOFF")}
+                    else "ASK_HUMAN" if pending else None),
+                "gold_language_catalog": public_gold.catalog("language")["entries"] if pending else []}
 
     def _newer_inbound(self, event: dict) -> bool:
         return any(item["revision"] > event["revision"] for item in
@@ -503,6 +582,61 @@ class OfflineWorkspaceApi:
         result = self._pipeline(student_id).run_turn(
             student_id=student_id, conversation_id=conversation_id,
             inbound_event_id=inbound[-1]["event_id"], idempotency_key=uuid4().hex)
+        if self.gold_homework_enabled and self.agent_mode == "SCRIPTED" and result.status not in {"ASK_HUMAN", "HANDOFF"}:
+            self._scripts[student_id].pop(0)
+        return {"pipeline": asdict(result), "workspace": self.getWorkspace(student_id)}
+
+    def resumeGoldPause(self, student_id: str, resolution: dict) -> dict:
+        """Continue a paused synthetic exercise after an explicit human choice."""
+        if not self.gold_homework_enabled:
+            raise OfflineOnlyError("gold_homework_explicit_opt_in_required")
+        self._assert_synthetic(resolution)
+        if set(resolution) - {"demo_only", "pause_event_id", "action", "reason",
+                               "strategy_choice", "idempotency_key"}:
+            raise OfflineOnlyError("unsupported_gold_resolution_field")
+        pending = self.getWorkspace(student_id)["gold_pending"]
+        if not pending or pending["event_id"] != resolution.get("pause_event_id"):
+            raise OfflineOnlyError("gold_pause_is_not_current")
+        reason = _text(resolution.get("reason"), "gold_resolution_reason")
+        if resolution.get("action") != "SELECT_STRATEGY" or resolution.get("strategy_choice") != "FIRST":
+            raise OfflineOnlyError("unsupported_public_gold_resolution")
+        inbound = self._store.list_events(student_id, event_type="INBOUND_RECEIVED")[-1]
+        context = self._store.get_event(pending["payload"]["context_event_id"])
+        if context["revision"] < inbound["revision"]:
+            raise OfflineOnlyError("gold_pause_is_stale")
+        trace = self._store.public_gold_trace(student_id, context["event_id"])
+        first = next((event["payload"]["output"].get("first_decision") for event in trace
+                      if event["payload"]["stage"] == "D0"), None)
+        if not isinstance(first, dict):
+            raise OfflineOnlyError("gold_first_decision_missing")
+        self._gold_resolutions[student_id] = {"action": "SELECT_STRATEGY",
+                                              "strategy_choice": resolution["strategy_choice"],
+                                              "reason": reason, "first_decision": first}
+        prior = next((event for event in self._store.list_events(student_id, event_type="GOLD_HUMAN_RESOLVED")
+                      if event["payload"]["pause_event_id"] == pending["event_id"]), None)
+        if prior is not None:
+            if prior["payload"]["choice"] != resolution["strategy_choice"] or prior["payload"]["reason"] != reason:
+                raise OfflineOnlyError("gold_resolution_already_recorded")
+            if any(event["revision"] > prior["revision"] for event in
+                   self._store.list_events(student_id, event_type="DECISION_READY")):
+                raise OfflineOnlyError("gold_resume_requires_human_recovery")
+        else:
+            self._store.record_public_gold_resolution(
+                student_id=student_id, conversation_id=self._conversation(student_id),
+                pause_event_id=pending["event_id"], choice=resolution["strategy_choice"],
+                reason=reason, idempotency_key=resolution.get("idempotency_key") or uuid4().hex)
+        result = self._pipeline(student_id).run_turn(
+            student_id=student_id, conversation_id=self._conversation(student_id),
+            inbound_event_id=inbound["event_id"], idempotency_key=uuid4().hex,
+            gold_resolution=self._gold_resolutions[student_id])
+        if result.status == "HANDOFF":
+            self._store.record_public_gold_resume_handoff(
+                student_id=student_id, conversation_id=self._conversation(student_id),
+                pause_event_id=pending["event_id"], idempotency_key=uuid4().hex)
+        if self.agent_mode == "SCRIPTED" and (result.status not in {"ASK_HUMAN", "HANDOFF"}
+                                                   or result.status == "HANDOFF" and result.decision_event_id):
+            self._scripts[student_id].pop(0)
+        self._gold_resolutions.pop(student_id, None)
         return {"pipeline": asdict(result), "workspace": self.getWorkspace(student_id)}
 
     def reviewDraft(self, student_id: str, review: dict) -> dict:

@@ -87,6 +87,10 @@ class OpenAICompatibleProvider:
             prompt += ("\nThe reply must use exactly the numeric tokens in protected_numeric_tokens. "
                        "Include every content_contract.must_include item verbatim and contiguously. "
                        "Do not add prices, services, case outcomes, program facts, or promises.")
+            if "style_feedback" in payload:
+                prompt += ("\nThis is the only permitted style rewrite. Address the listed style issues "
+                           "while preserving the verified content contract and all conditions. "
+                           "Do not introduce new facts, prices, approvals, or promises.")
         body = json.dumps({"model": self.model, "temperature": 0,
                            "response_format": {"type": "json_object"},
                            "messages": [{"role": "system", "content": prompt},
@@ -409,6 +413,9 @@ class LocalOllamaJSONProvider:
                 "You may adjust tone around these strings, but cannot paraphrase or omit them. "
                 "Write all customer-facing messages in English."
             )
+            if "style_feedback" in payload:
+                prompt += (" This is the only permitted style rewrite. Address the listed style issues "
+                           "without changing the verified content contract or adding claims.")
         trace = {"role": role, "model": self.model,
                  "prompt_version": self.PROMPT_VERSION,
                  "prompt_sha256": sha256(prompt.encode("utf-8")).hexdigest(),

@@ -297,6 +297,71 @@ class V2RuntimeStore:
         finally:
             self._end(ok)
 
+    def record_public_gold_stage(self, *, student_id: str, conversation_id: str,
+                                 context_event_id: str, stage: str, output: dict,
+                                 idempotency_key: str) -> dict:
+        """Persist an internal synthetic exercise stage, never a student fact."""
+        if stage not in {"D0", "G0", "D1", "G1", "C0", "C0_STYLE_CHECK",
+                         "C0_REPAIR", "C0_STYLE_RECHECK"}:
+            raise ContractViolation("invalid_public_gold_stage")
+        if not isinstance(output, dict) or len(json.dumps(output, ensure_ascii=False)) > 30000:
+            raise ContractViolation("public_gold_output_too_large")
+        context = self.get_event(context_event_id)
+        if not context or context["student_id"] != student_id or context["conversation_id"] != conversation_id:
+            raise ContractViolation("gold_context_mismatch")
+        request = {"type": "GOLD_STAGE_RECORDED", "context_event_id": context_event_id,
+                   "stage": stage, "output": output}
+        def build() -> dict:
+            return self._append(student_id=student_id, conversation_id=conversation_id,
+                                event_type="GOLD_STAGE_RECORDED", schema_version="public.gold-stage.v1",
+                                actor="SYSTEM", payload={"context_event_id": context_event_id,
+                                                         "stage": stage, "output": deepcopy(output)},
+                                idempotency_key=idempotency_key, request=request,
+                                causation_id=context_event_id)
+        return self._write(student_id, idempotency_key, request, build)
+
+    def public_gold_trace(self, student_id: str, context_event_id: str) -> list[dict]:
+        return [event for event in self.list_events(student_id, event_type="GOLD_STAGE_RECORDED")
+                if event["payload"]["context_event_id"] == context_event_id]
+
+    def record_public_gold_resolution(self, *, student_id: str, conversation_id: str,
+                                      pause_event_id: str, choice: str, reason: str,
+                                      idempotency_key: str) -> dict:
+        pause = self.get_event(pause_event_id)
+        if not pause or pause["student_id"] != student_id or pause["conversation_id"] != conversation_id \
+                or pause["event_type"] != "GOLD_STAGE_RECORDED" \
+                or pause["payload"].get("stage") != "D1" \
+                or pause["payload"].get("output", {}).get("status") != "ASK_HUMAN":
+            raise ContractViolation("gold_pause_is_not_current")
+        if choice != "FIRST" or not isinstance(reason, str) or not reason.strip() or len(reason) > 2000:
+            raise ContractViolation("invalid_gold_resolution")
+        request = {"type": "GOLD_HUMAN_RESOLVED", "pause_event_id": pause_event_id,
+                   "choice": choice, "reason": reason}
+        def build() -> dict:
+            previous = [event for event in self.list_events(student_id, event_type="GOLD_HUMAN_RESOLVED")
+                        if event["payload"]["pause_event_id"] == pause_event_id]
+            if previous:
+                raise ContractViolation("gold_pause_already_resolved")
+            return self._append(student_id=student_id, conversation_id=conversation_id,
+                                event_type="GOLD_HUMAN_RESOLVED", schema_version="public.gold-resolution.v1",
+                                actor="SALESPERSON", payload={"pause_event_id": pause_event_id,
+                                                              "choice": choice, "reason": reason},
+                                idempotency_key=idempotency_key, request=request,
+                                causation_id=pause_event_id)
+        return self._write(student_id, idempotency_key, request, build)
+
+    def record_public_gold_resume_handoff(self, *, student_id: str, conversation_id: str,
+                                          pause_event_id: str, idempotency_key: str) -> dict:
+        """A retry marker with no model text or untrusted exception detail."""
+        request = {"type": "GOLD_RESUME_HANDOFF", "pause_event_id": pause_event_id}
+        def build() -> dict:
+            return self._append(student_id=student_id, conversation_id=conversation_id,
+                                event_type="GOLD_RESUME_HANDOFF", schema_version="public.gold-resume-handoff.v1",
+                                actor="SYSTEM", payload={"pause_event_id": pause_event_id},
+                                idempotency_key=idempotency_key, request=request,
+                                causation_id=pause_event_id)
+        return self._write(student_id, idempotency_key, request, build)
+
     def record_inbound(
         self, *, student_id: str, conversation_id: str, raw_text: str,
         idempotency_key: str, channel: str = "WECHAT", recorded_by: str = "salesperson",

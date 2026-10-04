@@ -70,6 +70,9 @@ function renderWalkthrough(w) {
 
 function workflowStatus(w) {
   if (w.sales.contact_permission === 'DO_NOT_CONTACT') return 'Contact stopped';
+  if (w.gold_pending_status === 'RESUME_HANDOFF') return 'Reference review needs a fresh human-reviewed turn';
+  if (w.gold_pending_status === 'ASK_HUMAN') return 'Strategy review paused for a human decision';
+  if (w.gold_pending_status === 'NO_LANGUAGE_MATCH') return 'Language example review paused for a human decision';
   if (w.has_pending_offer) return 'Custom offer needs human approval';
   const draft = w.drafts.at(-1);
   if (draft?.status === 'PENDING_REVIEW') return 'Reply draft awaiting human review';
@@ -110,6 +113,7 @@ function renderDetail() {
     ${renderTimeline(w)}
     ${renderProgress(w)}
     ${renderInputWorkflow(w)}
+    ${renderGoldReview(w, blocked)}
     ${renderDecision(w, blocked, offerPending)}
     ${renderOffer(w, blocked)}
     ${renderDrafts(w, blocked, offerPending || offerRejected, latestDraft, sendAllowed && !offerRejected)}
@@ -150,11 +154,40 @@ function renderProgress(w) {
     ${reflection ? `<details><summary>View unverified reflection for this customer</summary><p>${text(reflection.observed_outcome)}</p><p>Possible explanation: ${text(reflection.possible_explanation)}</p><small>${text(reflection.learning_status)} · Not automatically added to sales knowledge</small></details>` : ''}</section>`;
 }
 
+function renderGoldReview(w, blocked) {
+  if (!usingBridge || !Array.isArray(w.gold_trace) || !w.gold_trace.length) return '';
+  const stages = w.gold_trace.filter(event => event.event_type === 'GOLD_STAGE_RECORDED');
+  const stageOutput = stage => stages.filter(event => event.payload?.stage === stage).at(-1)?.payload?.output;
+  const first = stageOutput('D0');
+  const reference = stageOutput('G0');
+  const compared = stageOutput('D1');
+  const language = stageOutput('G1');
+  const style = stageOutput('C0_STYLE_RECHECK') || stageOutput('C0_STYLE_CHECK');
+  const generated = Boolean(stageOutput('C0'));
+  const pending = w.gold_pending;
+  const pause = w.gold_pending_status || pending?.payload?.pause_reason;
+  const summary = decision => `<dl class="facts"><div><dt>Purchase readiness, unverified</dt><dd>${text(decision?.purchase_readiness?.assessment || 'Not provided')}</dd></div><div><dt>Current obstacle</dt><dd>${text(decision?.selected_strategy?.purchase_blocker || 'Unknown')}</dd></div><div><dt>Turn objective</dt><dd>${text(decision?.current_objective?.goal || 'Not provided')}</dd></div><div><dt>Why now</dt><dd>${text(decision?.current_objective?.why_now || 'Not provided')}</dd></div><div><dt>Suggested voluntary next step</dt><dd>${text(decision?.action_plan?.selected_action || 'Not provided')}</dd></div><div><dt>Internal base reply, unsent</dt><dd>${text(decision?.content_contract?.semantic_draft || 'Not provided')}</dd></div></dl>`;
+  const comparisonLabel = { KEEP_FIRST: 'Keep the independent decision', KEEP_FIRST_PLAN: 'Keep the independent decision', REVISE_PLAN: 'Revise after comparison', ASK_HUMAN: 'Await human review' };
+  const styleLabel = style?.status === 'PASS' ? 'Passed a limited heuristic check; human review is still required'
+    : style?.status === 'REVISE' ? 'Expression risks remain; a human must review the draft'
+      : 'Content checks stopped before tone assessment';
+  const styleIssues = Array.isArray(style?.issues) ? style.issues.map(issue => issue.instruction).filter(Boolean).join('; ') : '';
+  const styleNote = !generated ? '' : style
+    ? `<p class="helper" role="status">Automated style risk check: ${text(styleLabel)}.${styleIssues ? ` Issues: ${text(styleIssues)}` : ''}</p>`
+    : '<p class="helper" role="status">A reply draft was generated. Tone and similarity to the example have not been automatically judged; assess naturalness during human review.</p>';
+  const control = !blocked && pending && pause === 'ASK_HUMAN' ? `<form id="gold-resolution-form" class="review-form"><input type="hidden" name="pause_event_id" value="${fieldValue(pending.event_id)}"><h3>Review the pause</h3><input type="hidden" name="strategy_choice" value="FIRST"><p>Continue with the independent decision after reviewing the comparison.</p><label>Reason <span class="required">Required</span><textarea name="reason" rows="2" required maxlength="2000" placeholder="Explain how this choice fits the known facts"></textarea></label><p class="helper">This resumes only the current synthetic turn. Any new draft still needs separate human review and is never sent by this page.</p><button type="submit" class="button primary">Record choice and continue</button></form>` : '';
+  const resolutions = w.gold_trace.filter(event => event.event_type === 'GOLD_HUMAN_RESOLVED');
+  const pauseMessage = pause === 'ASK_HUMAN' ? 'Strategy review is paused; no customer draft was produced.'
+    : pause === 'RESUME_HANDOFF' ? 'The resumed Agent run failed after the decision was recorded. No customer draft is ready. Record a fresh student turn for human review.'
+      : 'No suitable language example was selected; draft generation is paused.';
+  return `<section class="panel gold-panel"><div class="section-heading"><h2>Independent decision and reference review</h2><span class="section-kicker">Internal synthetic coursework review</span></div>${pause ? `<p class="blocked-note" role="status">${pauseMessage}</p>` : ''}${first ? `<details open><summary>Independent decision (D0)</summary>${summary(first.first_decision || first)}</details>` : ''}${reference ? `<p>Decision example (G0): ${text(reference.gold_ids?.join(', ') || 'No matching example')} · ${text(reference.reason || '')}</p>` : ''}${compared ? `<details open><summary>Decision after comparison (D1): ${text(comparisonLabel[compared.comparison?.disposition] || compared.comparison?.disposition)}</summary><p>Similarities: ${text(compared.comparison?.similarities?.join('; ') || 'None recorded')}</p><p>Material differences: ${text(compared.comparison?.key_differences?.join('; ') || 'None recorded')}</p><p>Reason: ${text(compared.comparison?.reason || 'Not provided')}</p>${summary(compared.final_decision)}</details>` : ''}${language ? `<p>Selected language example: ${text(language.gold_id || 'None selected')} · ${text(language.reason || 'No reason recorded')}</p>` : ''}${styleNote}${resolutions.length ? `<details><summary>Human choices recorded (${resolutions.length})</summary>${resolutions.map(event => `<p>${text(event.payload?.action)} · ${text(event.payload?.selection?.reason || 'Reason not available')}</p>`).join('')}</details>` : ''}${control}<p class="helper">The comparison is a heuristic suggestion, not a quality judgment. Example context and possible future outcomes are not facts about this student. The reference cannot authorize a claim or offer.</p></section>`;
+}
+
 function renderDecision(w, blocked, offerPending) {
   const d = w.decision;
   const offerStatus = w.offer?.review_action === 'REJECT' ? 'Rejected' :
     w.offer?.review_action === 'REQUEST_CHANGES' ? 'Returned for changes' : d?.offer?.state || 'NONE';
-  return `<section class="panel decision-panel"><div class="section-heading"><h2>Internal decision</h2><span class="section-kicker">Not shown to the student</span></div>${d ? `<div class="objective"><span class="eyebrow">Current objective</span><strong>${text(d.current_objective?.goal)}</strong><p>${text(d.current_objective?.why_now)}</p><small>Observable signals: ${text(d.current_objective?.success_signals?.join(', '))}</small></div><dl class="facts"><div><dt>Selected action</dt><dd>${text(d.action_plan?.selected_action)}</dd></div><div><dt>Base reply</dt><dd>${text(d.content_contract?.semantic_draft)}</dd></div><div><dt>Offer Status</dt><dd>${text(offerStatus)}</dd></div>${usingBridge && d.input_event_ids?.length ? `<div><dt>Input source events</dt><dd>${text(d.input_event_ids.join(', '))}</dd></div>` : ''}</dl>${d.demo_only ? `<p class="demo-note">${modelMode() ? 'Model experiment; V2 Gate and human review are still required. This does not mean it passed business evaluation.' : 'This is fixed rule demo output, not a model judgment or a decision that passed business evaluation.'}</p>` : ''}` : '<div class="empty-inline">No decision yet. Record a student message, then request a demo decision.</div>'}${blocked ? '<p class="blocked-note">Do not contact: sales decision actions are unavailable.</p>' : `<button type="button" class="button" data-action="request-decision" ${offerPending || ['DRAFTED', 'APPROVED', 'PENDING_REVIEW'].includes(w.draft_status) ? 'disabled' : ''}>${remoteModel() ? 'Run remote API Agent' : localModel() ? 'Run local Ollama Agent' : 'Run synthetic demo decision'}</button>`}${modelMode() ? '<p class="muted">Model inference may take several minutes. A failure or Gate rejection will not be replaced with a scripted reply.</p>' : ''}${offerPending ? '<p class="blocked-note">Custom package awaits approval; no sendable draft can be generated.</p>' : ''}</section>`;
+  return `<section class="panel decision-panel"><div class="section-heading"><h2>Internal decision</h2><span class="section-kicker">Not shown to the student</span></div>${d ? `<div class="objective"><span class="eyebrow">Current objective</span><strong>${text(d.current_objective?.goal)}</strong><p>${text(d.current_objective?.why_now)}</p><small>Observable signals: ${text(d.current_objective?.success_signals?.join(', '))}</small></div><dl class="facts"><div><dt>Selected action</dt><dd>${text(d.action_plan?.selected_action)}</dd></div><div><dt>Base reply</dt><dd>${text(d.content_contract?.semantic_draft)}</dd></div><div><dt>Offer Status</dt><dd>${text(offerStatus)}</dd></div>${usingBridge && d.input_event_ids?.length ? `<div><dt>Input source events</dt><dd>${text(d.input_event_ids.join(', '))}</dd></div>` : ''}</dl>${d.demo_only ? `<p class="demo-note">${modelMode() ? 'Model experiment; V2 Gate and human review are still required. This does not mean it passed business evaluation.' : 'This is fixed rule demo output, not a model judgment or a decision that passed business evaluation.'}</p>` : ''}` : '<div class="empty-inline">No decision yet. Record a student message, then request a demo decision.</div>'}${blocked ? '<p class="blocked-note">Do not contact: sales decision actions are unavailable.</p>' : `<button type="button" class="button" data-action="request-decision" ${offerPending || w.gold_pending || (usingBridge && w.gold_homework_enabled === false && w.gold_trace?.length) || ['DRAFTED', 'APPROVED', 'PENDING_REVIEW'].includes(w.draft_status) ? 'disabled' : ''}>${remoteModel() ? 'Run remote API Agent' : localModel() ? 'Run local Ollama Agent' : 'Run synthetic demo decision'}</button>`}${modelMode() ? '<p class="muted">Model inference may take several minutes. A failure or Gate rejection will not be replaced with a scripted reply.</p>' : ''}${offerPending ? '<p class="blocked-note">Custom package awaits approval; no sendable draft can be generated.</p>' : ''}</section>`;
 }
 
 function renderOffer(w, blocked) {
@@ -304,7 +337,9 @@ async function submitStudentMessage(data) {
     } else {
       const result = await api.requestDecision(state.studentId);
       const outcome = result.pipeline_outcome?.status;
-      if (outcome === 'APPROVAL_REQUIRED') {
+      if (['ASK_HUMAN', 'NO_LANGUAGE_MATCH'].includes(outcome)) {
+        state.notice = 'Student message recorded. This turn is paused for a human choice; no customer draft was generated.';
+      } else if (outcome === 'APPROVAL_REQUIRED') {
         state.notice = 'Student message recorded. A custom offer needs human approval before a reply can be drafted.';
       } else if (outcome === 'STOPPED') {
         state.notice = 'Student message recorded. The workflow stopped; no reply was generated.';
@@ -351,6 +386,7 @@ root.addEventListener('click', async event => {
     state.walkthrough.playing = !state.walkthrough.playing; render(); scheduleWalkthrough();
   }
   else if (action === 'request-decision') await mutate(() => api.requestDecision(state.studentId), result => {
+    if (['ASK_HUMAN', 'NO_LANGUAGE_MATCH'].includes(result.pipeline_outcome?.status)) return 'This turn is paused for a human choice in the reference review panel. No customer draft was produced.';
     if (result.pipeline_outcome?.status === 'APPROVAL_REQUIRED') return 'The model proposed a custom offer for internal review. A human must check and approve it; there is no customer draft yet.';
     if (result.pipeline_outcome?.status === 'STOPPED') return `This turn stopped (${result.pipeline_outcome.reason_codes?.join(', ') || 'stop condition'}); no customer draft was generated.`;
     return modelMode() ? 'The model draft passed the current Gate and awaits human review. It has not been sent.' : 'Synthetic demo decision generated; this is not a real Agent output.';
@@ -369,6 +405,23 @@ root.addEventListener('submit', async event => {
     await mutate(() => api.updateStudent(state.studentId, studentUpdatePayload(data, state.workspace.revision, state.workspace.sales)), 'Record status updated.');
     if (!state.error) { state.showEdit = false; render(); }
   } else if (form.id === 'inbound-form') await submitStudentMessage(data);
+  else if (form.id === 'gold-resolution-form' && usingBridge) {
+    const pending = state.workspace?.gold_pending;
+    if (!pending || data.pause_event_id !== pending.event_id) { state.error = 'The pause changed. Reload this record before choosing.'; render(); return; }
+    const resolution = { pause_event_id: pending.event_id, reason: data.reason };
+    if ((state.workspace.gold_pending_status || pending.payload?.pause_reason) !== 'ASK_HUMAN' ||
+        data.strategy_choice !== 'FIRST') {
+      state.error = 'Select a supported strategy for the current pause.'; render(); return;
+    }
+    resolution.action = 'SELECT_STRATEGY';
+    resolution.strategy_choice = data.strategy_choice;
+    await mutate(() => api.resumeGoldPause(state.studentId, resolution), result =>
+      ['ASK_HUMAN', 'NO_LANGUAGE_MATCH'].includes(result.pipeline_outcome?.status)
+        ? 'Your choice was recorded. Another human decision is needed for this turn.'
+        : result.pipeline_outcome?.status === 'REVIEW_REQUIRED'
+          ? 'Your choice was recorded. A new draft awaits separate human review and has not been sent.'
+          : 'Your choice was recorded. Check the current turn status.');
+  }
   else if (form.id === 'internal-form') await mutate(() => api.discussInternal(state.studentId, { raw_text: data.raw_text }), 'The internal note was recorded and does not enter the student visible conversation.');
   else if (form.id === 'progress-label-form' && usingBridge) await mutate(() => api.labelProgressAssessment(state.studentId, {
     assessment_event_id: data.assessment_event_id, human_label: data.human_label, reason: data.reason,

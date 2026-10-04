@@ -67,6 +67,8 @@ Open `http://127.0.0.1:8765/?bridge=offline` for the synthetic workspace. The br
 
 **Typical demo flow:** create a clearly marked synthetic student, open the record, and use **Record message and generate reply** to capture the exact student words and show the reply draft plus updated workflow status. In default mode this is a fixed scripted sample, not live model inference. Inspect the Gate result and draft, then request a revision or approve it. Record an external send only if a human actually sent the exact text. The system itself never contacts a student. A local outcome entry is only an operator assertion; it does not verify payment or conversion.
 
+For the optional reference-review exercise, start the bridge with `python3 web/bridge_server.py 8765 --gold-homework`. This records the independent decision, checks it against a small separate set of invented English development examples, and shows the language example and a limited style-risk check before human draft review. A disagreement can pause the turn for a human reason; continuing keeps the independent decision. These examples do not come from the 24 evaluation cases or the private Owner Gold and cannot authorize a fact, offer, or message send. The comparison is a heuristic workflow exercise, not a measured sales-quality result. The default demo does not use this reference path.
+
 ## Evaluation and cost
 
 The [evaluation guide](evals/README.md) explains the English development cases, labels, B0/B1/B2 comparison, commands, scoring, and limits. The cases are synthetic adaptations and newly invented challenges. They are **not** the private, owner-approved Gold set and not an independent holdout. Scripted tests can check schema, event lineage, policy constraints and reproducibility; adviser judgment and real customer outcomes remain unmeasured.
@@ -89,4 +91,4 @@ The project defines the target workflow, the separation between strategy and wor
 
 ## Disclosure boundary
 
-This code release contains synthetic fixtures only. Do not enter real student data into the demo.
+This code release contains synthetic student and evaluation fixtures. The tool code has public source allowlists but no private case records or approved programme facts. Do not enter real student data into the demo.
